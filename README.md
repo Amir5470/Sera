@@ -1,50 +1,140 @@
-# Welcome to your Expo app 👋
+# Sera 🌅
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+> **Your school, all in one place.**
 
-## Get started
+Sera is a student-led mobile app that connects an entire school in one place — your classes, your events, your people. Built with React Native + Firebase, designed for students by a student.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## The Problem
 
-2. Start the app
+School communication is broken and fragmented:
 
-   ```bash
-   npx expo start
-   ```
+- **Discord** — every class needs its own server, nothing connects
+- **Saturn** — schedules only, no communication layer
+- **Google Classroom** — teacher-controlled, formal, not social
+- **Group chats** — chaotic, no structure
 
-In the output, you'll find options to open the app in a
+Sera replaces all of it.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Core Features
 
-## Get a fresh project
+| Feature | Description |
+|---|---|
+| 📅 **Schedule** | Manually input your classes. See your full day or week at a glance. |
+| 💬 **Class Rooms** | Auto-generated chat room per class. Share notes, pin homework and test dates. |
+| 📣 **School Feed** | The town square for your whole school — sports, events, spirit week, announcements. |
+| 🎯 **Clubs & Groups** | Create or join any club or team. Chat, share files, and manage events. |
 
-When you're ready, run:
+---
+
+## What Sera Is Not
+
+- ❌ No DMs — school-wide communication only
+- ❌ No anonymous posting
+- ❌ No teacher or admin accounts — fully student-led
+- ❌ No school database integration — no legal/data issues
+- ❌ Not a gradebook
+- ❌ No ads, no data selling
+
+---
+
+## Tech Stack
+
+- **React Native** + **Expo** — cross-platform mobile
+- **Firebase Auth** — sign in / authentication
+- **Firestore** — real-time database
+- **Firebase Storage** — file and note sharing
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v18+)
+- Expo CLI: `npm install -g expo-cli`
+- Firebase project with Auth, Firestore, and Storage enabled
+
+### Installation
 
 ```bash
-npm run reset-project
+git clone https://github.com/amir5470/sera.git
+cd sera
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Environment Setup
 
-## Learn more
+Create a `.env` file in the project root and add your Firebase config:
 
-To learn more about developing your project with Expo, look at the following resources:
+```
+FIREBASE_API_KEY=your_api_key
+FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+FIREBASE_PROJECT_ID=your_project_id
+FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+FIREBASE_APP_ID=your_app_id
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Running the App
 
-## Join the community
+```bash
+npx expo start
+```
 
-Join our community of developers creating universal apps.
+Scan the QR code with Expo Go on your phone, or press `i` for iOS Simulator / `a` for Android Emulator.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+---
+
+## Privacy & Legal
+
+Sera is designed to stay compliant with student data policies, which governs technology providers that contract with school districts.
+
+- Sera **never formally contracts** with a school district
+- All data is **student-inputted** — nothing is pulled from school systems
+- Clear Privacy Policy and Terms of Service — **data is never sold or shared**
+- Willing to sign additional agreements if a school requests it
+
+---
+
+## Brand
+
+**Name:** Sera ('SAIR'-uh) — Italian/Spanish for "evening," the time people sit down and actually connect.
+
+**Color Palette:**
+
+| Token | Value | Use |
+|---|---|---|
+| Background | `#0D0A1A` | Deep night |
+| Primary Accent | `#F97316` | Sunset orange — sun, logo, CTAs |
+| Secondary Accent | `#FFD166` | Golden yellow — highlights |
+| Primary Text | `#FFFFFF` | White |
+| Muted Text | `rgba(255,255,255,0.45)` | Subtext |
+
+---s
+
+## Roadmap
+
+- [x] Project brief and pitch deck
+- [X] Firebase project setup
+- [X] Auth flow (sign up / sign in)
+- [ ] Schedule input + display
+- [ ] Class Rooms (auto-generated per class)
+- [ ] School Feed
+- [ ] Clubs & Groups
+- [ ] Beta launch at Worthington school
+
+---
+
+## Developer
+
+**Amir Mechkour** — 14 y/o high school freshman, Columbus, Ohio
+
+- Portfolio: [amir5470.github.io/Portfolio](https://amir5470.github.io/Portfolio)
+
+---
+
+*Sera is a student-led project. Built for students. Run by students.*

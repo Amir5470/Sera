@@ -1,24 +1,26 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import { Slot, useRouter, useSegments } from 'expo-router'
+import { useEffect } from 'react'
+import { ActivityIndicator, View } from 'react-native'
+import { Colors } from '../constants/colors'
+import { useAuth } from '../hooks/useAuth'
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const { user, loading } = useAuth()
+  const router = useRouter()
+  const segments = useSegments()
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+  useEffect(() => {
+    if (loading) return
+    const inAuth = segments[0] === '(auth)'
+    if (!user && !inAuth) router.replace('/(auth)/sign-in' as any)
+    if (user && inAuth) router.replace('/(app)/feed' as any)
+  }, [user, loading])
+
+  if (loading) return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+      <ActivityIndicator color={Colors.primary} />
+    </View>
+  )
+
+  return <Slot />
 }
