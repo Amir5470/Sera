@@ -16,7 +16,9 @@ export default function SignUp() {
   const router = useRouter()
 
   const [request, response, promptAsync] = Google.useAuthRequest({
+    iosClientId: '608393229921-8nvoncoq09k3tae8d0lii7j16nbtd645.apps.googleusercontent.com',
     webClientId: '608393229921-p0gdis6scsnl2r0j5njajhv3mjv6kev6.apps.googleusercontent.com',
+    responseType: 'id_token',
   })
 
   const handleGoogleSignUp = async () => {
