@@ -2,12 +2,18 @@ import { addDoc, collection } from 'firebase/firestore'
 import { db } from './firebase'
 
 export const sendMessage = async (
-  classRoomId: string,
+  schoolId: string,
+  roomId: string,
+  isClub: boolean,
   text: string,
   authorName: string,
   authorId: string
 ) => {
-  await addDoc(collection(db, 'classRooms', classRoomId, 'messages'), {
+  const col = isClub
+    ? collection(db, 'schools', schoolId, 'clubs', roomId, 'messages')
+    : collection(db, 'schools', schoolId, 'classes', roomId, 'messages')
+
+  await addDoc(col, {
     text,
     authorName,
     authorId,

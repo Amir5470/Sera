@@ -3,9 +3,9 @@ import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Colors } from '../../constants/colors'
 import { useAuth } from '../../hooks/useAuth'
-import { saveProfile } from '../../lib/profile'
+import { saveProfileIndex } from '../../lib/profile'
 
-const SPORTS = ['Football', 'Basketball', 'Soccer', 'Baseball', 'Volleyball', 'Tennis', 'Swimming', 'Track', 'Wrestling', 'Golf']
+const SPORTS = ['Football', 'Basketball', 'Soccer', 'Baseball', 'Volleyball', 'Tennis', 'Swimming', 'Track', 'Wrestling', 'Golf', 'Marching Band']
 const INTERESTS = ['Robotics', 'Drama', 'Band', 'Choir', 'Art', 'Debate', 'Student Council', 'NHS', 'DECA', 'Gaming']
 
 export default function Step4() {
@@ -22,7 +22,7 @@ export default function Step4() {
   const next = async () => {
     if (!user) return
     setLoading(true)
-    await saveProfile(user.uid, { sports, interests })
+    await saveProfileIndex(user.uid, { sports, interests })
     router.push('/(onboarding)/step5' as any)
     setLoading(false)
   }

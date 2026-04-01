@@ -1,43 +1,36 @@
 import { useLocalSearchParams } from 'expo-router'
 import { useRef, useState } from 'react'
 import {
-  ActivityIndicator,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+  ActivityIndicator, FlatList, KeyboardAvoidingView,
+  Platform, Pressable, StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { Colors } from '../../../constants/colors'
 import { useAuth } from '../../../hooks/useAuth'
 import { useClassChat } from '../../../hooks/useClassChat'
+import { useProfile } from '../../../hooks/useProfile'
 import { sendMessage } from '../../../lib/chat'
 
 export default function ClassRoom() {
-  const { classId, name } = useLocalSearchParams<{ classId: string; name: string }>()
+  const { classId, name, schoolId } = useLocalSearchParams<{ classId: string; name: string; schoolId: string }>()
   const { user } = useAuth()
-  const { messages, loading } = useClassChat(classId)
+  const { profile } = useProfile()
+  const resolvedSchoolId = schoolId ?? profile?.schoolId
+  const { messages, loading } = useClassChat(resolvedSchoolId, classId, false)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const listRef = useRef<FlatList>(null)
 
   const submit = async () => {
-    if (!text.trim() || !user) return
+    if (!text.trim() || !user || !resolvedSchoolId) return
     setSending(true)
-    await sendMessage(classId, text.trim(), user.displayName ?? 'Student', user.uid)
+    await sendMessage(resolvedSchoolId, classId, false, text.trim(), profile?.displayName ?? 'Student', user.uid)
     setText('')
     setSending(false)
     listRef.current?.scrollToEnd({ animated: true })
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}>
         <Text style={styles.headerText}>{name ?? 'Class Room'}</Text>
       </View>
@@ -63,9 +56,7 @@ export default function ClassRoom() {
               </View>
             )
           }}
-          ListEmptyComponent={
-            <Text style={styles.empty}>No messages yet. Say something!</Text>
-          }
+          ListEmptyComponent={<Text style={styles.empty}>No messages yet. Say something!</Text>}
         />
       )}
 

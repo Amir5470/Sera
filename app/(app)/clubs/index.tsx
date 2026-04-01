@@ -1,33 +1,62 @@
-import { useRouter } from 'expo-router'
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
-import { Colors } from '../../../constants/colors'
-import { useClubs } from '../../../hooks/useClubs'
+import { useRouter } from 'expo-router';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Colors } from '../../../constants/colors';
+import { useAuth } from '../../../hooks/useAuth';
+import { useClubs } from '../../../hooks/useClubs'; // This hook now handles the "disappearing" logic
+import { useProfile } from '../../../hooks/useProfile';
 
 export default function Clubs() {
-  const { clubs, loading } = useClubs()
+  const { user } = useAuth()
+  const { profile } = useProfile()
+  const { clubs, loading } = useClubs(profile?.schoolId, user?.uid)
   const router = useRouter()
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Clubs & Groups</Text>
+      
       {loading ? (
-        <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
+        <View style={styles.center}>
+          <ActivityIndicator color={Colors.primary} size="large" />
+        </View>
       ) : (
         <FlatList
           data={clubs}
           keyExtractor={item => item.id}
-          contentContainerStyle={{ gap: 12 }}
+          contentContainerStyle={{ gap: 12, paddingBottom: 40 }}
           renderItem={({ item }) => (
             <Pressable
               style={styles.card}
-              onPress={() => router.push({ pathname: '/(app)/clubs/[clubId]', params: { clubId: item.clubId, name: item.name } } as any)}
+              onPress={() => router.push({
+                pathname: '/(app)/clubs/[clubId]',
+                params: { 
+                  clubId: item.id, 
+                  name: item.name, 
+                  schoolId: profile?.schoolId 
+                }
+              } as any)}
             >
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.sub}>{item.teacher !== 'Unknown' ? `Advisor: ${item.teacher}` : 'No advisor listed'}</Text>
+              <View style={styles.emojiContainer}>
+                <Text style={styles.emojiText}>{item.emoji || '🤝'}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.sub}>
+                  {item.teacher && item.teacher !== 'Unknown' 
+                    ? `Advisor: ${item.teacher}` 
+                    : 'Group Chat'}
+                </Text>
+              </View>
+              <Text style={styles.chevron}>→</Text>
             </Pressable>
           )}
           ListEmptyComponent={
-            <Text style={styles.empty}>No clubs yet.{'\n'}They'll appear here after scanning your schedule.</Text>
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyTitle}>No Clubs Found</Text>
+              <Text style={styles.emptySub}>
+                Clubs from your schedule will automatically appear here once scanned.
+              </Text>
+            </View>
           }
         />
       )}
@@ -36,10 +65,36 @@ export default function Clubs() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background, padding: 20, paddingTop: 60 },
-  header: { fontSize: 28, fontWeight: 'bold', color: Colors.text, marginBottom: 20 },
-  card: { backgroundColor: Colors.card, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.border },
-  name: { color: Colors.text, fontWeight: 'bold', fontSize: 16 },
-  sub: { color: Colors.muted, marginTop: 4 },
-  empty: { color: Colors.muted, textAlign: 'center', marginTop: 40, lineHeight: 24 },
+  container: { flex: 1, backgroundColor: Colors.background, padding: 20, paddingTop: 40 },
+  center: { marginTop: 50 },
+  header: { fontSize: 32, fontWeight: '900', color: Colors.text, marginBottom: 24 },
+  
+  card: { 
+    backgroundColor: Colors.card, 
+    padding: 16, 
+    borderRadius: 18, 
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1, 
+    borderColor: Colors.border,
+    gap: 14
+  },
+  emojiContainer: {
+    width: 44,
+    height: 44,
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border
+  },
+  emojiText: { fontSize: 22 },
+  name: { color: Colors.text, fontWeight: '800', fontSize: 17 },
+  sub: { color: Colors.muted, fontSize: 13, marginTop: 2 },
+  chevron: { color: Colors.muted, fontSize: 18, fontWeight: '600' },
+
+  emptyContainer: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
+  emptyTitle: { color: Colors.text, fontSize: 18, fontWeight: '700', marginBottom: 8 },
+  emptySub: { color: Colors.muted, textAlign: 'center', fontSize: 14, lineHeight: 22 },
 })

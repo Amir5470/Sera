@@ -1,11 +1,12 @@
 import {
-    addDoc,
-    collection,
-    doc,
-    getDocs,
-    query,
-    setDoc,
-    where
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  setDoc,
+  where,
 } from 'firebase/firestore'
 import { db } from './firebase'
 
@@ -14,16 +15,22 @@ export type ClassData = {
   teacher: string
   period: string
   type?: 'class' | 'club'
+  emoji?: string      // Added
+  startTime?: string  // Added
+  endTime?: string    // Added
 }
 
-export const joinOrCreateClass = async (userId: string, classData: ClassData & { type?: string }) => {
+export const joinOrCreateClass = async (
+  userId: string,
+  schoolId: string,
+  classData: ClassData
+) => {
   const isClub = classData.type === 'club'
-  const rootCollection = isClub ? 'clubs' : 'classRooms'
+  const rootCol = isClub
+    ? collection(db, 'schools', schoolId, 'clubs')
+    : collection(db, 'schools', schoolId, 'classes')
 
-  const q = query(
-    collection(db, rootCollection),
-    where('name', '==', classData.name)
-  )
+  const q = query(rootCol, where('nameLower', '==', classData.name.toLowerCase().trim()))
   const snap = await getDocs(q)
 
   let roomId: string
@@ -31,27 +38,49 @@ export const joinOrCreateClass = async (userId: string, classData: ClassData & {
   if (!snap.empty) {
     roomId = snap.docs[0].id
   } else {
-    const ref = await addDoc(collection(db, rootCollection), {
-      name: classData.name,
-      teacher: classData.teacher,
+    // Create the room if it doesn't exist
+    const ref = await addDoc(rootCol, {
+      name: classData.name.trim(),
+      nameLower: classData.name.toLowerCase().trim(),
+      teacher: classData.teacher || 'Unknown',
       createdAt: Date.now(),
     })
     roomId = ref.id
   }
 
-  await addDoc(collection(db, isClub ? 'userClubs' : 'classes'), {
-    userId,
-    [`${isClub ? 'club' : 'classRoom'}Id`]: roomId,
-    name: classData.name,
-    teacher: classData.teacher,
-    period: classData.period,
-    type: classData.type ?? 'class',
-    createdAt: Date.now(),
-  })
-
-  await setDoc(doc(db, rootCollection, roomId, 'members', userId), {
-    joinedAt: Date.now(),
-  })
+  // SAVE USER-SPECIFIC DATA (Emoji and Times)
+  // This ensures your useClassRooms hook can actually find the data you reviewed
+  await setDoc(
+    doc(db, 'schools', schoolId, isClub ? 'clubs' : 'classes', roomId, 'members', userId),
+    { 
+      joinedAt: Date.now(), 
+      period: classData.period,
+      emoji: classData.emoji || '📖',
+      startTime: classData.startTime || '',
+      endTime: classData.endTime || ''
+    },
+    { merge: true }
+  )
 
   return roomId
+}
+
+export const leaveClass = async (
+  userId: string,
+  schoolId: string,
+  classId: string,
+  isClub: boolean = false
+) => {
+  try {
+    const col = isClub ? 'clubs' : 'classes'
+    const docRef = doc(db, 'schools', schoolId, col, classId, 'members', userId);
+    
+    // Perform the deletion
+    await deleteDoc(docRef);
+    
+    console.log(`Successfully removed member ${userId} from ${col}/${classId}`);
+  } catch (error) {
+    console.error("Error in leaveClass:", error);
+    throw error;
+  }
 }

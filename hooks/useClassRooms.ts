@@ -1,30 +1,66 @@
-import { collection, onSnapshot, query, where } from 'firebase/firestore'
+import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore'
 import { useEffect, useState } from 'react'
 import { db } from '../lib/firebase'
-import { useAuth } from './useAuth'
 
 export type ClassRoom = {
   id: string
   name: string
   teacher: string
-  period: string
-  classRoomId: string
+  period?: string
+  emoji?: string
+  startTime?: string
+  endTime?: string
 }
 
-export const useClassRooms = () => {
-  const { user } = useAuth()
+export const useClassRooms = (schoolId: string | undefined, userId: string | undefined) => {
   const [classRooms, setClassRooms] = useState<ClassRoom[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!user) return
-    const q = query(collection(db, 'classes'), where('userId', '==', user.uid))
-    const unsub = onSnapshot(q, (snap) => {
-      setClassRooms(snap.docs.map(d => ({ id: d.id, ...d.data() } as ClassRoom)))
+    if (!schoolId || !userId) {
+      setLoading(false)
+      return
+    }
+
+    // This listener is the "Source of Truth"
+    // We listen to the specific school's classes
+    const classesRef = collection(db, 'schools', schoolId, 'classes')
+
+    const unsub = onSnapshot(classesRef, async (snapshot) => {
+      const joined: ClassRoom[] = []
+
+      // Map through every class in the school and check if this specific user is a member
+      const promises = snapshot.docs.map(async (classDoc) => {
+        const memberRef = doc(db, 'schools', schoolId, 'classes', classDoc.id, 'members', userId)
+        const memberSnap = await getDoc(memberRef)
+
+        if (memberSnap.exists()) {
+          const mData = memberSnap.data()
+          const cData = classDoc.data()
+          
+          joined.push({
+            id: classDoc.id,
+            name: cData.name,
+            teacher: cData.teacher,
+            period: mData.period,
+            emoji: mData.emoji,
+            startTime: mData.startTime,
+            endTime: mData.endTime,
+          })
+        }
+      })
+
+      await Promise.all(promises)
+      
+      // Sort chronologically
+      joined.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''))
+      
+      setClassRooms(joined)
       setLoading(false)
     })
+
     return unsub
-  }, [user])
+  }, [schoolId, userId])
 
   return { classRooms, loading }
 }

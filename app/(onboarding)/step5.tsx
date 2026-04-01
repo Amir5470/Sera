@@ -1,16 +1,20 @@
-import { useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Colors } from '../../constants/colors'
 import { useAuth } from '../../hooks/useAuth'
-import { completeOnboarding, saveProfile } from '../../lib/profile'
+import { useProfile } from '../../hooks/useProfile'
+import { completeOnboarding, saveProfileIndex } from '../../lib/profile'
 
 const NOTIFICATIONS = ['New posts on Feed', 'Class Room messages', 'Club messages', 'School events', 'Announcements']
 const HEARD_FROM = ['Friend', 'Teacher', 'Social media', 'School announcement', 'Other']
 
 export default function Step5() {
   const { user } = useAuth()
+  const { profile } = useProfile()
   const router = useRouter()
+  const { edit } = useLocalSearchParams() as { edit?: string }
+  const isEdit = edit === 'true'
   const [notifications, setNotifications] = useState<string[]>([])
   const [heardFrom, setHeardFrom] = useState('')
   const [loading, setLoading] = useState(false)
@@ -22,11 +26,15 @@ export default function Step5() {
   }
 
   const finish = async () => {
-    if (!user) return
+    if (!user || !profile?.schoolId) return
     setLoading(true)
-    await saveProfile(user.uid, { notifications, heardFrom })
-    await completeOnboarding(user.uid)
-    router.replace('/(app)/feed' as any)
+    await saveProfileIndex(user.uid, { notifications, heardFrom })
+    await completeOnboarding(user.uid, profile.schoolId)
+    if (isEdit) {
+      router.replace('/(app)/settings' as any)
+    } else {
+      router.replace('/(app)/feed' as any)
+    }
     setLoading(false)
   }
 
@@ -67,7 +75,7 @@ export default function Step5() {
       </View>
 
       <Pressable style={[styles.button, loading && styles.buttonDisabled]} onPress={finish} disabled={loading}>
-        <Text style={styles.buttonText}>Let's go 🌅</Text>
+        <Text style={styles.buttonText}>{isEdit ? 'Save' : "Let's go 🌅"}</Text>
       </Pressable>
     </ScrollView>
   )

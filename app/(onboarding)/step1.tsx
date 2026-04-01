@@ -1,13 +1,15 @@
-import { useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Colors } from '../../constants/colors'
 import { useAuth } from '../../hooks/useAuth'
-import { saveProfile } from '../../lib/profile'
+import { saveProfileIndex } from '../../lib/profile'
 
 export default function Step1() {
   const { user } = useAuth()
   const router = useRouter()
+  const { edit } = useLocalSearchParams() as { edit?: string }
+  const isEdit = edit === 'true'
   const [displayName, setDisplayName] = useState('')
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
@@ -18,10 +20,26 @@ export default function Step1() {
       return
     }
     if (!user) return
-    setLoading(true)
-    await saveProfile(user.uid, { displayName: displayName.trim(), username: username.trim().toLowerCase() })
-    router.push('/(onboarding)/step2' as any)
-    setLoading(false)
+
+    try {
+      setLoading(true)
+
+      await saveProfileIndex(user.uid, {
+        displayName: displayName.trim(),
+        username: username.trim().toLowerCase(),
+      })
+
+      if (isEdit) {
+        router.replace('/(app)/settings' as any)
+      } else {
+        router.push('/(onboarding)/step2' as any)
+      }
+    } catch (e: any) {
+      console.log('FIRESTORE ERROR:', e)
+      Alert.alert('Error', e.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -37,21 +55,21 @@ export default function Step1() {
       <Text style={styles.subtitle}>This is how you'll appear to your school.</Text>
       <TextInput
         style={styles.input}
-        placeholder="Display name (e.g. Amir M.)"
+        placeholder="Display name (e.g. John Doe)"
         placeholderTextColor={Colors.muted}
         value={displayName}
         onChangeText={setDisplayName}
       />
       <TextInput
         style={styles.input}
-        placeholder="Username (e.g. amir5470)"
+        placeholder="Username (e.g. CoolKid123)"
         placeholderTextColor={Colors.muted}
         value={username}
         onChangeText={setUsername}
         autoCapitalize="none"
       />
       <Pressable style={[styles.button, loading && styles.buttonDisabled]} onPress={next} disabled={loading}>
-        <Text style={styles.buttonText}>Next →</Text>
+        <Text style={styles.buttonText}>{isEdit ? 'Save' : 'Next →'}</Text>
       </Pressable>
     </View>
   )

@@ -1,9 +1,10 @@
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Slot, useRouter, useSegments } from 'expo-router'
+import { doc, getDoc } from 'firebase/firestore'
 import { useEffect } from 'react'
-import { ActivityIndicator, View } from 'react-native'
-import { Colors } from '../constants/colors'
 import { useAuth } from '../hooks/useAuth'
 import { useProfile } from '../hooks/useProfile'
+import { db } from '../lib/firebase'
 
 export default function RootLayout() {
   const { user, loading: authLoading } = useAuth()
@@ -14,34 +15,41 @@ export default function RootLayout() {
   useEffect(() => {
     if (authLoading || profileLoading) return
 
-    const inAuth = segments[0] === '(auth)'
-    const inOnboarding = segments[0] === '(onboarding)'
-    const inApp = segments[0] === '(app)'
+    const navigate = async () => {
+      const inAuth = segments[0] === '(auth)'
+      const inOnboarding = segments[0] === '(onboarding)'
+      const inSplash = segments[0] === 'index'
+      const inLanding = segments[0] === undefined || segments[0] === 'landing'
 
-    if (!user && !inAuth) {
-      router.replace('/(auth)/sign-in' as any)
-      return
-    }
+      // Don't redirect while on splash or index
+      if (inSplash || inLanding) return
 
-    if (user && inAuth) {
-      if (!profile?.onboardingComplete) {
-        router.replace('/(onboarding)/step1' as any)
-      } else {
-        router.replace('/(app)/feed' as any)
+      if (!user) {
+        const cachedUid = await AsyncStorage.getItem('sera_uid')
+        if (cachedUid) {
+          const snap = await getDoc(doc(db, 'userIndex', cachedUid))
+          if (snap.exists() && snap.data().onboardingComplete) return
+        }
+        if (!inAuth) router.replace('/(auth)/sign-in' as any)
+        return
       }
-      return
+
+      if (user && inAuth) {
+        if (!profile?.onboardingComplete) {
+          router.replace('/(onboarding)/step1' as any)
+        } else {
+          router.replace('/(app)/feed' as any)
+        }
+        return
+      }
+
+      if (user && !inOnboarding && !profile?.onboardingComplete) {
+        router.replace('/(onboarding)/step1' as any)
+      }
     }
 
-    if (user && !inOnboarding && !profile?.onboardingComplete) {
-      router.replace('/(onboarding)/step1' as any)
-    }
-  }, [user, authLoading, profile, profileLoading])
-
-  if (authLoading || profileLoading) return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
-      <ActivityIndicator color={Colors.primary} />
-    </View>
-  )
+    navigate()
+  }, [user, authLoading, profile, profileLoading, segments])
 
   return <Slot />
 }

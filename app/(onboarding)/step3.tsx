@@ -1,19 +1,40 @@
-import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useEffect, useState } from 'react'
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Colors } from '../../constants/colors'
 import { useAuth } from '../../hooks/useAuth'
-import { saveProfile } from '../../lib/profile'
+import { saveProfileIndex } from '../../lib/profile'
+import { findOrCreateSchool, searchSchools } from '../../lib/schools'
 
 const GRADES = ['9th', '10th', '11th', '12th']
 
 export default function Step3() {
   const { user } = useAuth()
   const router = useRouter()
+  const { edit } = useLocalSearchParams() as { edit?: string }
+  const isEdit = edit === 'true'
   const [school, setSchool] = useState('')
   const [city, setCity] = useState('')
   const [grade, setGrade] = useState('')
   const [loading, setLoading] = useState(false)
+  const [suggestions, setSuggestions] = useState<{ id: string; name: string; city: string }[]>([])
+  const [schoolSelected, setSchoolSelected] = useState(false)
+
+  useEffect(() => {
+    if (schoolSelected) return
+    const timeout = setTimeout(async () => {
+      const results = await searchSchools(school)
+      setSuggestions(results)
+    }, 300)
+    return () => clearTimeout(timeout)
+  }, [school])
+
+  const selectSchool = (s: { id: string; name: string; city: string }) => {
+    setSchool(s.name)
+    setCity(s.city)
+    setSuggestions([])
+    setSchoolSelected(true)
+  }
 
   const next = async () => {
     if (!school.trim() || !city.trim() || !grade) {
@@ -22,13 +43,23 @@ export default function Step3() {
     }
     if (!user) return
     setLoading(true)
-    await saveProfile(user.uid, { school: school.trim(), city: city.trim(), grade })
-    router.push('/(onboarding)/step4' as any)
+    const schoolId = await findOrCreateSchool(school, city)
+    await saveProfileIndex(user.uid, {
+      school: school.trim(),
+      city: city.trim(),
+      grade,
+      schoolId,
+    })
+    if (isEdit) {
+      router.replace('/(app)/settings' as any)
+    } else {
+      router.push('/(onboarding)/step4' as any)
+    }
     setLoading(false)
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
       <View style={styles.progress}>
         <View style={[styles.dot, styles.dotActive]} />
         <View style={[styles.dot, styles.dotActive]} />
@@ -39,16 +70,29 @@ export default function Step3() {
       <Text style={styles.title}>Your school</Text>
       <Text style={styles.subtitle}>Help us connect you with your school community.</Text>
 
+      <View style={styles.autocompleteContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="School name (e.g. West Jefferson High School)"
+          placeholderTextColor={Colors.muted}
+          value={school}
+          onChangeText={(t) => { setSchool(t); setSchoolSelected(false) }}
+        />
+        {suggestions.length > 0 && (
+          <View style={styles.suggestions}>
+            {suggestions.map(s => (
+              <Pressable key={s.id} style={styles.suggestion} onPress={() => selectSchool(s)}>
+                <Text style={styles.suggestionName}>{s.name}</Text>
+                <Text style={styles.suggestionCity}>{s.city}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
+
       <TextInput
         style={styles.input}
-        placeholder="School name (e.g. Worthington Kilbourne)"
-        placeholderTextColor={Colors.muted}
-        value={school}
-        onChangeText={setSchool}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="City (e.g. Columbus, Ohio)"
+        placeholder="City (e.g. Chicago, IL)"
         placeholderTextColor={Colors.muted}
         value={city}
         onChangeText={setCity}
@@ -68,7 +112,7 @@ export default function Step3() {
       </View>
 
       <Pressable style={[styles.button, loading && styles.buttonDisabled]} onPress={next} disabled={loading}>
-        <Text style={styles.buttonText}>Next →</Text>
+        <Text style={styles.buttonText}>{isEdit ? 'Save' : 'Next →'}</Text>
       </Pressable>
     </ScrollView>
   )
@@ -81,7 +125,12 @@ const styles = StyleSheet.create({
   dotActive: { backgroundColor: Colors.primary },
   title: { color: Colors.text, fontSize: 28, fontWeight: '700', marginBottom: 8 },
   subtitle: { color: Colors.muted, fontSize: 15, marginBottom: 32 },
-  input: { backgroundColor: Colors.card, color: Colors.text, padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: Colors.border, fontSize: 15 },
+  autocompleteContainer: { position: 'relative', zIndex: 10, marginBottom: 12 },
+  input: { backgroundColor: Colors.card, color: Colors.text, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.border, fontSize: 15, marginBottom: 12 },
+  suggestions: { backgroundColor: Colors.card, borderRadius: 12, borderWidth: 1, borderColor: Colors.border, marginTop: 4, overflow: 'hidden' },
+  suggestion: { padding: 14, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  suggestionName: { color: Colors.text, fontWeight: '600', fontSize: 14 },
+  suggestionCity: { color: Colors.muted, fontSize: 12, marginTop: 2 },
   label: { color: Colors.text, fontWeight: '600', marginBottom: 12, fontSize: 15 },
   gradeRow: { flexDirection: 'row', gap: 10, marginBottom: 32 },
   gradeButton: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: Colors.card, alignItems: 'center', borderWidth: 1, borderColor: Colors.border },

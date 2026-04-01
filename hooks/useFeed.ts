@@ -10,18 +10,22 @@ export type Post = {
   createdAt: number
 }
 
-export const useFeed = () => {
+export const useFeed = (schoolId: string | undefined) => {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'))
+    if (!schoolId) return
+    const q = query(
+      collection(db, 'schools', schoolId, 'posts'),
+      orderBy('createdAt', 'desc')
+    )
     const unsub = onSnapshot(q, (snap) => {
       setPosts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post)))
       setLoading(false)
     })
     return unsub
-  }, [])
+  }, [schoolId])
 
   return { posts, loading }
 }

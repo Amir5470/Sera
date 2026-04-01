@@ -10,22 +10,27 @@ export type Message = {
   createdAt: number
 }
 
-export const useClassChat = (classRoomId: string) => {
+export const useClassChat = (
+  schoolId: string | undefined,
+  roomId: string | undefined,
+  isClub: boolean = false
+) => {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!classRoomId) return
-    const q = query(
-      collection(db, 'classRooms', classRoomId, 'messages'),
-      orderBy('createdAt', 'asc')
-    )
+    if (!schoolId || !roomId) return
+    const col = isClub
+      ? collection(db, 'schools', schoolId, 'clubs', roomId, 'messages')
+      : collection(db, 'schools', schoolId, 'classes', roomId, 'messages')
+
+    const q = query(col, orderBy('createdAt', 'asc'))
     const unsub = onSnapshot(q, (snap) => {
       setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() } as Message)))
       setLoading(false)
     })
     return unsub
-  }, [classRoomId])
+  }, [schoolId, roomId, isClub])
 
   return { messages, loading }
 }

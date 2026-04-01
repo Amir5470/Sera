@@ -10,6 +10,7 @@ export type Profile = {
   grade: string
   school: string
   city: string
+  schoolId: string
   sports: string[]
   interests: string[]
   notifications: string[]
@@ -24,13 +25,17 @@ export const useProfile = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!user) { setLoading(false); return }
-    const unsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
-      setProfile(snap.exists() ? snap.data() as Profile : null)
-      setLoading(false)
-    })
-    return unsub
-  }, [user])
+  if (!user?.uid) {
+    setLoading(false)
+    return
+  }
 
+  const unsub = onSnapshot(doc(db, 'userIndex', user.uid), (snap) => {
+    setProfile(snap.exists() ? (snap.data() as Profile) : null)
+    setLoading(false)
+  })
+
+  return unsub
+}, [user?.uid])
   return { profile, loading }
 }
