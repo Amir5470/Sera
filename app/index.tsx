@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { Dimensions, StyleSheet, View } from 'react-native'
 import Animated, {
   Easing,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming
@@ -29,9 +30,12 @@ export default function Splash() {
     })
 
     const timeout = setTimeout(() => {
-      // Use your actual feed or home route here to avoid the "Index" redirect flash
-      router.replace('/landing' as any) 
-    }, 2000)
+      opacity.value = withTiming(0, { duration: 200 }, (finished) => {
+        if (finished) {
+          runOnJS(router.replace)('/landing' as any)
+        }
+      })
+    }, 1800)
 
     return () => clearTimeout(timeout)
   }, [])

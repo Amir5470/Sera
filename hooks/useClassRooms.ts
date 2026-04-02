@@ -10,6 +10,7 @@ export type ClassRoom = {
   emoji?: string
   startTime?: string
   endTime?: string
+  type?: 'class' | 'club'
 }
 
 export const useClassRooms = (schoolId: string | undefined, userId: string | undefined) => {
@@ -37,7 +38,7 @@ export const useClassRooms = (schoolId: string | undefined, userId: string | und
         if (memberSnap.exists()) {
           const mData = memberSnap.data()
           const cData = classDoc.data()
-          
+
           joined.push({
             id: classDoc.id,
             name: cData.name,
@@ -51,10 +52,7 @@ export const useClassRooms = (schoolId: string | undefined, userId: string | und
       })
 
       await Promise.all(promises)
-      
-      // Sort chronologically
-      joined.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''))
-      
+
       setClassRooms(joined)
       setLoading(false)
     })

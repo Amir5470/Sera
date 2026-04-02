@@ -7,13 +7,12 @@
     "icon": "./assets/images/icon.png",
     "scheme": "sera",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "backgroundColor": "#0D0A1A",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.serahq.app"
     },
     "android": {
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {

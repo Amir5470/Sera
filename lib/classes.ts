@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getCountFromServer,
   getDocs,
   query,
   setDoc,
@@ -15,9 +16,9 @@ export type ClassData = {
   teacher: string
   period: string
   type?: 'class' | 'club'
-  emoji?: string      // Added
-  startTime?: string  // Added
-  endTime?: string    // Added
+  emoji?: string
+  startTime?: string
+  endTime?: string
 }
 
 export const joinOrCreateClass = async (
@@ -38,26 +39,23 @@ export const joinOrCreateClass = async (
   if (!snap.empty) {
     roomId = snap.docs[0].id
   } else {
-    // Create the room if it doesn't exist
     const ref = await addDoc(rootCol, {
       name: classData.name.trim(),
       nameLower: classData.name.toLowerCase().trim(),
-      teacher: classData.teacher || 'Unknown',
+      teacher: classData.teacher,
       createdAt: Date.now(),
     })
     roomId = ref.id
   }
 
-  // SAVE USER-SPECIFIC DATA (Emoji and Times)
-  // This ensures your useClassRooms hook can actually find the data you reviewed
   await setDoc(
     doc(db, 'schools', schoolId, isClub ? 'clubs' : 'classes', roomId, 'members', userId),
-    { 
-      joinedAt: Date.now(), 
+    {
+      joinedAt: Date.now(),
       period: classData.period,
       emoji: classData.emoji || '📖',
       startTime: classData.startTime || '',
-      endTime: classData.endTime || ''
+      endTime: classData.endTime || '',
     },
     { merge: true }
   )
@@ -71,16 +69,17 @@ export const leaveClass = async (
   classId: string,
   isClub: boolean = false
 ) => {
-  try {
-    const col = isClub ? 'clubs' : 'classes'
-    const docRef = doc(db, 'schools', schoolId, col, classId, 'members', userId);
-    
-    // Perform the deletion
-    await deleteDoc(docRef);
-    
-    console.log(`Successfully removed member ${userId} from ${col}/${classId}`);
-  } catch (error) {
-    console.error("Error in leaveClass:", error);
-    throw error;
+  const col = isClub ? 'clubs' : 'classes'
+  const memberRef = doc(db, 'schools', schoolId, col, classId, 'members', userId)
+  await deleteDoc(memberRef)
+
+  // Check if any members remain
+  const membersCol = collection(db, 'schools', schoolId, col, classId, 'members')
+  const countSnap = await getCountFromServer(membersCol)
+
+  if (countSnap.data().count === 0) {
+    // No members left — delete the class/club room entirely
+    await deleteDoc(doc(db, 'schools', schoolId, col, classId))
+    console.log(`Deleted empty ${col} room: ${classId}`)
   }
 }
