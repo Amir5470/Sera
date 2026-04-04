@@ -1,64 +1,68 @@
-import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore'
-import { useEffect, useState } from 'react'
-import { db } from '../lib/firebase'
+import { collection, doc, getDoc, onSnapshot } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { db } from "../lib/firebase";
 
 export type ClassRoom = {
-  id: string
-  name: string
-  teacher: string
-  period?: string
-  emoji?: string
-  startTime?: string
-  endTime?: string
-  type?: 'class' | 'club'
-}
+  id: string;
+  name: string;
+  teacher: string;
+  period: string;
+  emoji: string;
+  startTime: string;
+  endTime: string;
+  type?: "class" | "club";
+};
 
-export const useClassRooms = (schoolId: string | undefined, userId: string | undefined) => {
-  const [classRooms, setClassRooms] = useState<ClassRoom[]>([])
-  const [loading, setLoading] = useState(true)
+export const useClassRooms = (
+  schoolId: string | undefined,
+  userId: string | undefined,
+) => {
+  const [classRooms, setClassRooms] = useState<ClassRoom[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!schoolId || !userId) {
-      setLoading(false)
-      return
+      setLoading(false);
+      return;
     }
 
-    // This listener is the "Source of Truth"
-    // We listen to the specific school's classes
-    const classesRef = collection(db, 'schools', schoolId, 'classes')
+    const classesRef = collection(db, "schools", schoolId, "classes");
 
     const unsub = onSnapshot(classesRef, async (snapshot) => {
-      const joined: ClassRoom[] = []
-
-      // Map through every class in the school and check if this specific user is a member
       const promises = snapshot.docs.map(async (classDoc) => {
-        const memberRef = doc(db, 'schools', schoolId, 'classes', classDoc.id, 'members', userId)
-        const memberSnap = await getDoc(memberRef)
+        const memberRef = doc(
+          db,
+          "schools",
+          schoolId,
+          "classes",
+          classDoc.id,
+          "members",
+          userId,
+        );
+        const memberSnap = await getDoc(memberRef);
 
-        if (memberSnap.exists()) {
-          const mData = memberSnap.data()
-          const cData = classDoc.data()
+        if (!memberSnap.exists()) return null;
 
-          joined.push({
-            id: classDoc.id,
-            name: cData.name,
-            teacher: cData.teacher,
-            period: mData.period,
-            emoji: mData.emoji,
-            startTime: mData.startTime,
-            endTime: mData.endTime,
-          })
-        }
-      })
+        // All schedule data lives on the class doc now
+        const cData = classDoc.data();
+        return {
+          id: classDoc.id,
+          name: cData.name,
+          teacher: cData.teacher,
+          period: cData.period,
+          emoji: cData.emoji || "📖",
+          startTime: cData.startTime || "",
+          endTime: cData.endTime || "",
+        } as ClassRoom;
+      });
 
-      await Promise.all(promises)
+      const results = await Promise.all(promises);
+      setClassRooms(results.filter(Boolean) as ClassRoom[]);
+      setLoading(false);
+    });
 
-      setClassRooms(joined)
-      setLoading(false)
-    })
+    return unsub;
+  }, [schoolId, userId]);
 
-    return unsub
-  }, [schoolId, userId])
-
-  return { classRooms, loading }
-}
+  return { classRooms, loading };
+};

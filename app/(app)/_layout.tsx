@@ -46,7 +46,7 @@ function CustomDrawerContent(props: any) {
 }
 
 export default function AppLayout() {
-    const { profile } = useProfile()
+  const { profile } = useProfile()
   return (
     <Drawer
       drawerContent={(props) => <CustomDrawerContent {...props} />}
@@ -92,6 +92,30 @@ export default function AppLayout() {
           drawerLabel: 'Clubs',
           title: 'Clubs',
           drawerIcon: ({ color }) => <Ionicons name="people-outline" size={22} color={color} />,
+        }}
+      />
+      <Drawer.Screen
+        name="settings/edit-profile"
+        options={{
+          drawerLabel: () => null,
+          drawerItemStyle: { display: 'none' },
+          title: 'Edit Profile',
+        }}
+      />
+      <Drawer.Screen
+        name="settings/edit-school"
+        options={{
+          drawerLabel: () => null,
+          drawerItemStyle: { display: 'none' },
+          title: 'Edit School',
+        }}
+      />
+      <Drawer.Screen
+        name="settings/notifications"
+        options={{
+          drawerLabel: () => null,
+          drawerItemStyle: { display: 'none' },
+          title: 'Notifications',
         }}
       />
       <Drawer.Screen

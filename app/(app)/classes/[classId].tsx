@@ -1,100 +1,159 @@
-import { useLocalSearchParams } from 'expo-router'
-import { useRef, useState } from 'react'
+import { useHeaderHeight } from "@react-navigation/elements";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRef, useState } from "react";
 import {
-  ActivityIndicator, FlatList, KeyboardAvoidingView,
-  Platform, Pressable, StyleSheet, Text, TextInput, View,
-} from 'react-native'
-import { Colors } from '../../../constants/colors'
-import { useAuth } from '../../../hooks/useAuth'
-import { useClassChat } from '../../../hooks/useClassChat'
-import { useProfile } from '../../../hooks/useProfile'
-import { sendMessage } from '../../../lib/chat'
-
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Colors } from "../../../constants/colors";
+import { classstyles } from "../../../constants/styles";
+import { useAuth } from "../../../hooks/useAuth";
+import { useClassChat } from "../../../hooks/useClassChat";
+import { useProfile } from "../../../hooks/useProfile";
+import { sendMessage } from "../../../lib/chat";
 export default function ClassRoom() {
-  const { classId, name, schoolId } = useLocalSearchParams<{ classId: string; name: string; schoolId: string }>()
-  const { user } = useAuth()
-  const { profile } = useProfile()
-  const resolvedSchoolId = schoolId ?? profile?.schoolId
-  const { messages, loading } = useClassChat(resolvedSchoolId, classId, false)
-  const [text, setText] = useState('')
-  const [sending, setSending] = useState(false)
-  const listRef = useRef<FlatList>(null)
+  const { classId, name, schoolId } = useLocalSearchParams<{
+    classId: string;
+    name: string;
+    schoolId: string;
+  }>();
+  const { user } = useAuth();
+  const { profile } = useProfile();
+  const resolvedSchoolId = schoolId ?? profile?.schoolId;
+  const { messages, loading } = useClassChat(resolvedSchoolId, classId, false);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const listRef = useRef<FlatList>(null);
+  const headerHeight = useHeaderHeight();
+  const router = useRouter();
 
   const submit = async () => {
-    if (!text.trim() || !user || !resolvedSchoolId) return
-    setSending(true)
-    await sendMessage(resolvedSchoolId, classId, false, text.trim(), profile?.displayName ?? 'Student', user.uid)
-    setText('')
-    setSending(false)
-    listRef.current?.scrollToEnd({ animated: true })
-  }
+    if (!text.trim() || !user || !resolvedSchoolId || !classId) return;
+
+    const senderName = profile?.displayName || user.displayName || "Student";
+
+    setSending(true);
+    try {
+      await sendMessage(
+        resolvedSchoolId,
+        classId,
+        false, // isClub = false
+        text.trim(),
+        senderName,
+        user.uid,
+      );
+      setText("");
+      // Small timeout to allow the keyboard/list to adjust before scrolling
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+    } catch (e) {
+      console.error("Send failed:", e);
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>{name ?? 'Class Room'}</Text>
-      </View>
+    <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        // iOS needs 'padding', Android usually needs 'height' or nothing (undefined)
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        // This is crucial: it tells the view how much space the top bar takes
+        keyboardVerticalOffset={headerHeight}
+      >
+        <View style={classstyles.header}>
+          <Pressable
+            onPress={() => router.back()}
+            style={classstyles.backButton}
+          >
+            <Text style={classstyles.backText}>← </Text>
+          </Pressable>
+          <Text style={classstyles.headerText}>{name ?? "Class Room"}</Text>
+        </View>
 
-      {loading ? (
-        <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
-      ) : (
-        <FlatList
-          ref={listRef}
-          data={messages}
-          keyExtractor={item => item.id}
-          contentContainerStyle={{ padding: 16, gap: 10 }}
-          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
-          renderItem={({ item }) => {
-            const isMe = item.authorId === user?.uid
-            return (
-              <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleThem]}>
-                {!isMe && <Text style={styles.author}>{item.authorName}</Text>}
-                <Text style={styles.messageText}>{item.text}</Text>
-                <Text style={styles.time}>
-                  {new Date(item.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+        {loading ? (
+          <View style={classstyles.center}>
+            <ActivityIndicator color={Colors.primary} size="large" />
+          </View>
+        ) : (
+          <FlatList
+            ref={listRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={classstyles.listContent}
+            onContentSizeChange={() =>
+              listRef.current?.scrollToEnd({ animated: false })
+            }
+            renderItem={({ item }) => {
+              const isMe = item.authorId === user?.uid;
+              return (
+                <View
+                  style={[
+                    classstyles.bubble,
+                    isMe ? classstyles.bubbleMe : classstyles.bubbleThem,
+                  ]}
+                >
+                  {!isMe && (
+                    <Text style={classstyles.author}>{item.authorName}</Text>
+                  )}
+                  <Text style={classstyles.messageText}>{item.text}</Text>
+                  <Text
+                    style={[
+                      classstyles.time,
+                      isMe ? classstyles.timeMe : classstyles.timeThem,
+                    ]}
+                  >
+                    {new Date(item.createdAt).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                  </Text>
+                </View>
+              );
+            }}
+            ListEmptyComponent={
+              <View style={classstyles.center}>
+                <Text style={classstyles.emptyText}>
+                  No messages yet. Say something!
                 </Text>
               </View>
-            )
-          }}
-          ListEmptyComponent={<Text style={styles.empty}>No messages yet. Say something!</Text>}
-        />
-      )}
+            }
+          />
+        )}
 
-      <View style={styles.composer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Message..."
-          placeholderTextColor={Colors.muted}
-          value={text}
-          onChangeText={setText}
-          multiline
-        />
-        <Pressable
-          style={[styles.sendButton, (!text.trim() || sending) && styles.sendButtonDisabled]}
-          onPress={submit}
-          disabled={!text.trim() || sending}
-        >
-          <Text style={styles.sendButtonText}>Send</Text>
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
-  )
+        <View style={classstyles.composer}>
+          <TextInput
+            style={classstyles.input}
+            placeholder="Message..."
+            placeholderTextColor={Colors.muted}
+            value={text}
+            onChangeText={setText}
+            multiline
+          />
+          <Pressable
+            style={[
+              classstyles.sendButton,
+              (!text.trim() || sending) && classstyles.sendButtonDisabled,
+            ]}
+            onPress={submit}
+            disabled={!text.trim() || sending}
+          >
+            {sending ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={classstyles.sendButtonText}>Send</Text>
+            )}
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: { paddingTop: 60, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  headerText: { color: Colors.text, fontSize: 22, fontWeight: '700' },
-  bubble: { maxWidth: '80%', padding: 12, borderRadius: 16, gap: 4 },
-  bubbleMe: { backgroundColor: Colors.primary, alignSelf: 'flex-end', borderBottomRightRadius: 4 },
-  bubbleThem: { backgroundColor: Colors.card, alignSelf: 'flex-start', borderBottomLeftRadius: 4 },
-  author: { color: Colors.secondary, fontSize: 12, fontWeight: '600' },
-  messageText: { color: Colors.text, fontSize: 15 },
-  time: { color: 'rgba(255,255,255,0.5)', fontSize: 11, alignSelf: 'flex-end' },
-  empty: { color: Colors.muted, textAlign: 'center', marginTop: 40 },
-  composer: { flexDirection: 'row', padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: Colors.border },
-  input: { flex: 1, backgroundColor: Colors.card, color: Colors.text, padding: 12, borderRadius: 12, fontSize: 15, maxHeight: 100 },
-  sendButton: { backgroundColor: Colors.primary, paddingHorizontal: 16, borderRadius: 12, justifyContent: 'center' },
-  sendButtonDisabled: { opacity: 0.4 },
-  sendButtonText: { color: '#fff', fontWeight: '600' },
-})

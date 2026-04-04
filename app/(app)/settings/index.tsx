@@ -1,28 +1,32 @@
-import { Ionicons } from '@expo/vector-icons'
-import { useRouter } from 'expo-router'
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { Colors } from '../../constants/colors'
-import { useAuth } from '../../hooks/useAuth'
-import { useProfile } from '../../hooks/useProfile'
-import { logOut } from '../../lib/auth'
+import { PressableScale } from "@/components/animated-helpers";
+import { Colors } from "@/constants/colors";
+import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
+import { logOut } from "@/lib/auth";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function SettingsScreen() {
-  const { user } = useAuth()
-  const { profile } = useProfile()
-  const router = useRouter()
+  const { user } = useAuth();
+  const { profile } = useProfile();
+  const router = useRouter();
 
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: () => logOut() },
-    ])
-  }
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Sign Out", style: "destructive", onPress: () => logOut() },
+    ]);
+  };
 
-  const SettingsItem = ({ icon, label, onPress, color = Colors.text, subtext = '' }: any) => (
-    <Pressable
-      style={({ pressed }) => [styles.menuItem, pressed && { opacity: 0.7 }]}
-      onPress={onPress}
-    >
+  const SettingsItem = ({
+    icon,
+    label,
+    onPress,
+    color = Colors.text,
+    subtext = "",
+  }: any) => (
+    <PressableScale style={styles.menuItem} onPress={onPress}>
       <View style={styles.menuItemLeft}>
         <Ionicons name={icon} size={22} color={color} />
         <View style={styles.menuTextContainer}>
@@ -31,26 +35,25 @@ export default function SettingsScreen() {
         </View>
       </View>
       <Ionicons name="chevron-forward" size={20} color={Colors.muted} />
-    </Pressable>
-  )
+    </PressableScale>
+  );
 
   return (
     <ScrollView style={styles.container}>
-
-      {/* Profile Section */}
       <View style={styles.section}>
         <View style={styles.profileCard}>
           <View style={styles.avatarPlaceholder}>
             <Ionicons name="person" size={40} color={Colors.muted} />
           </View>
           <View>
-            <Text style={styles.userName}>{profile?.displayName || 'Student'}</Text>
+            <Text style={styles.userName}>
+              {profile?.displayName || "Student"}
+            </Text>
             <Text style={styles.userEmail}>{user?.email}</Text>
           </View>
         </View>
       </View>
 
-      {/* Account Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.card}>
@@ -58,26 +61,40 @@ export default function SettingsScreen() {
             icon="person-outline"
             label="Edit Profile"
             subtext="Name, username, grade"
-            onPress={() => router.push({ pathname: '/(onboarding)/step1', params: { edit: 'true' } } as any)}
+            onPress={() =>
+              router.push({
+                pathname: "/settings/edit-profile",
+                params: { edit: "true" },
+              } as any)
+            }
           />
           <View style={styles.divider} />
           <SettingsItem
             icon="school-outline"
             label="Edit School"
             subtext="School name and city"
-            onPress={() => router.push({ pathname: '/(onboarding)/step3', params: { edit: 'true' } } as any)}
+            onPress={() =>
+              router.push({
+                pathname: "/settings/edit-school",
+                params: { edit: "true" },
+              } as any)
+            }
           />
           <View style={styles.divider} />
           <SettingsItem
             icon="notifications-outline"
             label="Notifications"
             subtext="Manage your alerts"
-            onPress={() => router.push({ pathname: '/(onboarding)/step5', params: { edit: 'true' } } as any)}
+            onPress={() =>
+              router.push({
+                pathname: "/settings/notifications",
+                params: { edit: "true" },
+              } as any)
+            }
           />
         </View>
       </View>
 
-      {/* Schedule Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Schedule</Text>
         <View style={styles.card}>
@@ -85,12 +102,11 @@ export default function SettingsScreen() {
             icon="calendar-outline"
             label="Manage Classes"
             subtext="Add, remove, or rescan your schedule"
-            onPress={() => router.push('/(app)/schedule' as any)}
+            onPress={() => router.push("/(app)/schedule" as any)}
           />
         </View>
       </View>
 
-      {/* App Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>App</Text>
         <View style={styles.card}>
@@ -111,7 +127,7 @@ export default function SettingsScreen() {
 
       <Text style={styles.version}>Sera v1.0.0</Text>
     </ScrollView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -120,15 +136,15 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: Colors.muted,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 8,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     marginLeft: 4,
   },
-  card: { backgroundColor: Colors.card, borderRadius: 16, overflow: 'hidden' },
+  card: { backgroundColor: Colors.card, borderRadius: 16, overflow: "hidden" },
   profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: Colors.card,
     padding: 20,
     borderRadius: 16,
@@ -139,27 +155,27 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     backgroundColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  userName: { color: Colors.text, fontSize: 18, fontWeight: '600' },
+  userName: { color: Colors.text, fontSize: 18, fontWeight: "600" },
   userEmail: { color: Colors.muted, fontSize: 14, marginTop: 2 },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 16,
   },
-  menuItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  menuItemLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   menuTextContainer: { gap: 2 },
-  menuText: { fontSize: 16, fontWeight: '500' },
+  menuText: { fontSize: 16, fontWeight: "500" },
   subtext: { color: Colors.muted, fontSize: 12 },
   divider: { height: 1, backgroundColor: Colors.border, marginLeft: 50 },
   version: {
     color: Colors.muted,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 40,
     marginBottom: 20,
     fontSize: 12,
   },
-})
+});
