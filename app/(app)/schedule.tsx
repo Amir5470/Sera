@@ -21,7 +21,7 @@ import { BellPeriod, voteForSchedule } from "../../lib/bellSchedules";
 import { joinOrCreateClass, leaveClass } from "../../lib/classes";
 import { successNotification } from "../../lib/haptics";
 
-const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
+const CLAUDE_MODEL = "claude-3-5-haiku-20241022";
 const ANTHROPIC_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_KEY!;
 
 interface ScannedClass {
