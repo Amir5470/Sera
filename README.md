@@ -21,12 +21,12 @@ Sera replaces all of it.
 
 ## Core Features
 
-| Feature | Description |
-|---|---|
-| 📅 **Schedule** | Manually input your classes. See your full day or week at a glance. |
-| 💬 **Class Rooms** | Auto-generated chat room per class. Share notes, pin homework and test dates. |
-| 📣 **School Feed** | The town square for your whole school — sports, events, spirit week, announcements. |
-| 🎯 **Clubs & Groups** | Create or join any club or team. Chat, share files, and manage events. |
+| Feature               | Description                                                                         |
+| --------------------- | ----------------------------------------------------------------------------------- |
+| 📅 **Schedule**       | Manually input your classes. See your full day or week at a glance.                 |
+| 💬 **Class Rooms**    | Auto-generated chat room per class. Share notes, pin homework and test dates.       |
+| 📣 **School Feed**    | The town square for your whole school — sports, events, spirit week, announcements. |
+| 🎯 **Clubs & Groups** | Create or join any club or team. Chat, share files, and manage events.              |
 
 ---
 
@@ -52,42 +52,7 @@ Sera replaces all of it.
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js (v18+)
-- Expo CLI: `npm install -g expo-cli`
-- Firebase project with Auth, Firestore, and Storage enabled
-
-### Installation
-
-```bash
-git clone https://github.com/amir5470/sera.git
-cd sera
-npm install
-```
-
-### Environment Setup
-
-Create a `.env` file in the project root and add your Firebase config:
-
-```
-FIREBASE_API_KEY=your_api_key
-FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-FIREBASE_PROJECT_ID=your_project_id
-FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-FIREBASE_APP_ID=your_app_id
-```
-
-### Running the App
-
-```bash
-npx expo start
-```
-
-Scan the QR code with Expo Go on your phone, or press `i` for iOS Simulator / `a` for Android Emulator.
-
----
+Sera is still in development, not avaliable for use.
 
 ## Privacy & Legal
 
@@ -106,21 +71,21 @@ Sera is designed to stay compliant with student data policies, which governs tec
 
 **Color Palette:**
 
-| Token | Value | Use |
-|---|---|---|
-| Background | `#0D0A1A` | Deep night |
-| Primary Accent | `#F97316` | Sunset orange — sun, logo, CTAs |
-| Secondary Accent | `#FFD166` | Golden yellow — highlights |
-| Primary Text | `#FFFFFF` | White |
-| Muted Text | `rgba(255,255,255,0.45)` | Subtext |
+| Token            | Value                    | Use                             |
+| ---------------- | ------------------------ | ------------------------------- |
+| Background       | `#0D0A1A`                | Deep night                      |
+| Primary Accent   | `#F97316`                | Sunset orange — sun, logo, CTAs |
+| Secondary Accent | `#FFD166`                | Golden yellow — highlights      |
+| Primary Text     | `#FFFFFF`                | White                           |
+| Muted Text       | `rgba(255,255,255,0.45)` | Subtext                         |
 
 ---s
 
 ## Roadmap
 
 - [x] Project brief and pitch deck
-- [X] Firebase project setup
-- [X] Auth flow (sign up / sign in)
+- [x] Firebase project setup
+- [x] Auth flow (sign up / sign in)
 - [ ] Schedule input + display
 - [ ] Class Rooms (auto-generated per class)
 - [ ] School Feed
@@ -137,4 +102,4 @@ Sera is designed to stay compliant with student data policies, which governs tec
 
 ---
 
-*Sera is a student-led project. Built for students. Run by students.*
+_Sera is a student-led project. Built for students. Run by students._

@@ -52,6 +52,12 @@ export default function RootLayout() {
         return;
       }
 
+      // If onboarding is already COMPLETE, don't allow access to onboarding screens
+      if (user && profile?.onboardingComplete && inOnboarding) {
+        router.replace("/feed" as any);
+        return;
+      }
+
       // RULE 2: If on splash, always go to landing next
       if (onSplash) {
         router.replace("/landing" as any);

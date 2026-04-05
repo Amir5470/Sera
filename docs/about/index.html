@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>About | Sera</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --sera-background: #0d0a1a;
+        --sera-primary: #f97316;
+        --sera-text: #ffffff;
+      }
+      body {
+        background-color: var(--sera-background);
+        color: var(--sera-text);
+        font-family: sans-serif;
+      }
+      .sunset-gradient {
+        background: linear-gradient(135deg, #f97316 0%, #ffd166 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+    </style>
+  </head>
+  <body class="flex flex-col min-h-screen">
+    <header class="border-b border-white/10 p-6">
+      <div class="container mx-auto flex justify-between items-center">
+        <a href="/index.html" class="flex items-center gap-3">
+          <img
+            src="https://github.com/Amir5470/Sera/blob/master/assets/images/icon.png?raw=true"
+            class="h-8 rounded-lg"
+          />
+        </a>
+      </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-20 max-w-3xl">
+      <h1 class="text-5xl font-bold mb-8">
+        The Idea Behind <span class="sunset-gradient">Sera</span>
+      </h1>
+      <div class="space-y-6 text-lg text-white/70 leading-relaxed">
+        <p>
+          Sera wasn't built in a corporate office. It was built in a high school
+          hallway.
+        </p>
+        <p>
+          We noticed that being a student in 2026 is digitally exhausting. You
+          check one app for your grades, another for your schedule, a third to
+          talk to your soccer team, and a fourth to find out when the pep rally
+          starts.
+        </p>
+        <p>
+          <strong>Sera fixes the fragmentation.</strong> By using AI to
+          understand your unique school schedule, we create a private,
+          student-led digital home for your classes and clubs. No teachers, no
+          ads, just your school, all in one place.
+        </p>
+        <p>
+          We built Sera for students, by a student. It's the app we wish we had
+          when we were in school — and we're on a mission to make it available
+          to every student in the world.
+        </p>
+
+        <p>
+          If you're a student, join our waitlist to be the first to try Sera
+          when it launches. If you're a parent or educator, sign up to stay in
+          the loop and help us shape the future of school communication.
+        </p>
+        <p><br /></p>
+        <a
+          href="/early-access"
+          class="bg-[#F97316] text-white px-10 py-4 rounded-xl text-lg font-semibold hover:bg-[#ea580c] transition transform hover:-translate-y-1 shadow-[0_10px_30px_-10px_rgba(249,115,22,0.5)]"
+          >Get Early Access</a
+        >
+      </div>
+    </main>
+  </body>
+</html>

@@ -46,6 +46,7 @@ app-example
 coverage/
 *.log
 
-/.tmp.driveupload
+.tmp.driveupload/
 
-/.tmp.drivedownload
+.tmp.drivedownload/
+GEMINI.md

@@ -136,7 +136,6 @@ export const clubstyles = StyleSheet.create({
     fontWeight: "800",
     maxWidth: width * 0.6,
   },
-  onlineStatus: { color: "#4ADE80", fontSize: 11, fontWeight: "600" },
 
   listContent: { padding: 16, paddingBottom: 30, gap: 12 },
 

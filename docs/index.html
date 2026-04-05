@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sera | Your school, all in one place.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Sera's brand colors */
+      :root {
+        --sera-background: #0d0a1a; /* Deep Night */
+        --sera-primary: #f97316; /* Sunset Orange */
+        --sera-secondary: #ffd166; /* Golden Yellow */
+        --sera-text: #ffffff;
+        --sera-muted: rgba(255, 255, 255, 0.45);
+        --sera-card: #1a1530;
+      }
+
+      body {
+        background-color: var(--sera-background);
+        color: var(--sera-text);
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .sunset-gradient-text {
+        background: linear-gradient(135deg, #f97316 0%, #ffd166 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .hero-pattern {
+        background-color: #0d0a1a;
+        background-image: radial-gradient(
+          rgba(255, 255, 255, 0.05) 1px,
+          transparent 1px
+        );
+        background-size: 32px 32px;
+      }
+
+      /* Smooth reveal animation */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .reveal {
+        animation: fadeInUp 0.8s ease-out forwards;
+      }
+    </style>
+  </head>
+  <body class="flex flex-col min-h-screen">
+    <header
+      class="border-b border-white/10 sticky top-0 bg-[#0D0A1A]/90 backdrop-blur-sm z-50"
+    >
+      <nav
+        class="container mx-auto px-6 py-4 flex items-center justify-between"
+      >
+        <a href="/" class="flex items-center gap-3 group">
+          <img
+            src="https://github.com/Amir5470/Sera/blob/master/assets/images/Sera-Logo-Transparent-Wtext.png?raw=true"
+            alt="Sera Logo"
+            class="h-10 w-auto transition-transform group-hover:scale-105"
+          />
+        </a>
+        <div class="flex items-center gap-4">
+          <a
+            href="/about"
+            class="text-sm text-white/70 hover:text-white transition"
+            >About</a
+          >
+          <a
+            href="/early-access"
+            class="bg-[#F97316] text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-[#ea580c] transition shadow-lg"
+            >Join Waitlist</a
+          >
+        </div>
+      </nav>
+    </header>
+
+    <section class="hero-pattern py-24 md:py-32 border-b border-white/5 reveal">
+      <div class="container mx-auto px-6 text-center">
+        <span
+          class="inline-block bg-[#1A1530] border border-[#FFD166]/20 text-[#FFD166] px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase mb-6 shadow-xl"
+          >STUDENT-LED BETA</span
+        >
+        <h2
+          class="text-5xl md:text-7xl font-bold tracking-tight leading-tight mb-6"
+        >
+          Your entire school.<br />All in one place.
+        </h2>
+        <p
+          class="text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-10 leading-relaxed"
+        >
+          School communication is broken and fragmented. Sera connects your
+          classes, your events, and your people in one simple, unified app.
+          Built for students, by a student.
+        </p>
+        <a
+          href="/early-access"
+          class="bg-[#F97316] text-white px-10 py-4 rounded-xl text-lg font-semibold hover:bg-[#ea580c] transition transform hover:-translate-y-1 shadow-[0_10px_30px_-10px_rgba(249,115,22,0.5)]"
+          >Get Early Access</a
+        >
+      </div>
+    </section>
+
+    <section id="about" class="py-24 bg-black/20">
+      <div class="container mx-auto px-6">
+        <div class="text-center mb-16">
+          <h3
+            class="text-xs text-[#FFD166] font-bold uppercase tracking-[4px] mb-3"
+          >
+            Core Features
+          </h3>
+          <p class="text-4xl font-semibold">Everything you need, unified.</p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8">
+          <div
+            class="bg-[#1A1530] p-8 rounded-2xl border border-white/5 shadow-2xl transition hover:border-[#F97316]/50"
+          >
+            <div
+              class="bg-[#0D0A1A] w-14 h-14 rounded-full flex items-center justify-center border border-white/10 mb-6 shadow-inner"
+            >
+              <span class="text-3xl">📅</span>
+            </div>
+            <h4 class="text-2xl font-semibold mb-3">AI Schedule Scanner</h4>
+            <p class="text-white/70 text-sm leading-relaxed">
+              Take a photo of your schedule and Sera's AI automatically
+              generates your class list and bell times. See your full day at a
+              glance.
+            </p>
+          </div>
+
+          <div
+            class="bg-[#1A1530] p-8 rounded-2xl border border-white/5 shadow-2xl transition hover:border-[#F97316]/50"
+          >
+            <div
+              class="bg-[#0D0A1A] w-14 h-14 rounded-full flex items-center justify-center border border-white/10 mb-6 shadow-inner"
+            >
+              <span class="text-3xl">💬</span>
+            </div>
+            <h4 class="text-2xl font-semibold mb-3">Class Rooms</h4>
+            <p class="text-white/70 text-sm leading-relaxed">
+              Auto-generated chat rooms for every class. Share notes, pin
+              homework, study for tests, and connect with classmates instantly.
+            </p>
+          </div>
+
+          <div
+            class="bg-[#1A1530] p-8 rounded-2xl border border-white/5 shadow-2xl transition hover:border-[#F97316]/50"
+          >
+            <div
+              class="bg-[#0D0A1A] w-14 h-14 rounded-full flex items-center justify-center border border-white/10 mb-6 shadow-inner"
+            >
+              <span class="text-3xl">📣</span>
+            </div>
+            <h4 class="text-2xl font-semibold mb-3">The School Feed</h4>
+            <p class="text-white/70 text-sm leading-relaxed">
+              The digital town square for your whole school. Stay updated on
+              sports results, events, club announcements, and spirit weeks.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-24 border-t border-white/5">
+      <div
+        class="container mx-auto px-6 grid md:grid-cols-2 gap-16 items-center"
+      >
+        <div>
+          <h3
+            class="text-xs text-[#FFD166] font-bold uppercase tracking-[4px] mb-3"
+          >
+            The Problem
+          </h3>
+          <p class="text-4xl font-semibold mb-6">
+            School communication<br />is broken.
+          </p>
+          <p class="text-lg text-white/70 leading-relaxed mb-6">
+            Currently, students rely on a chaotic mix of apps that don't talk to
+            each other. Information is fragmented, and connecting with the whole
+            school is impossible.
+          </p>
+          <ul class="space-y-4 text-white/80">
+            <li class="flex items-center gap-3">
+              <span class="text-red-500">❌</span>
+              <strong class="text-white">Discord</strong> - disjointed, requires
+              a server for every single class.
+            </li>
+            <li class="flex items-center gap-3">
+              <span class="text-red-500">❌</span>
+              <strong class="text-white">Saturn</strong> - schedules only, with
+              no real communication layer.
+            </li>
+            <li class="flex items-center gap-3">
+              <span class="text-red-500">❌</span>
+              <strong class="text-white">Google Classroom</strong> - formal, not
+              designed for student social use.
+            </li>
+          </ul>
+        </div>
+        <div
+          class="bg-[#1A1530] p-12 rounded-3xl border border-[#F97316]/30 shadow-[0_0_60px_-10px_rgba(249,115,22,0.3)] text-center"
+        >
+          <span class="text-8xl mb-6 block">🌅</span>
+          <p
+            class="text-2xl font-bold sunset-gradient-text tracking-wider uppercase mb-3"
+          >
+            Sera Replaces Them All.
+          </p>
+          <p class="text-white/80">Built by students. Run by students.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer
+      class="mt-auto border-t border-white/10 bg-black/40 text-sm text-white/50 py-10"
+    >
+      <div class="container mx-auto px-6 text-center">
+        <div class="flex items-center justify-center gap-3 mb-6 opacity-60">
+          <img
+            src="https://github.com/Amir5470/Sera/blob/master/assets/images/icon.png?raw=true"
+            alt="Sera Logo"
+            class="h-10 w-auto"
+            style="border-radius: 10px"
+          />
+        </div>
+        <p class="mb-3">&copy; 2026 Sera HQ. A student-led project.</p>
+        <p class="text-xs max-w-lg mx-auto leading-relaxed mb-6">
+          2026 Sera HQ. This platform is independent of any school district or
+          educational institution.
+        </p>
+        <div class="flex items-center justify-center gap-6">
+          <a
+            href="https://github.com/Amir5470/Sera"
+            target="_blank"
+            class="hover:text-white transition"
+            >GitHub</a
+          >
+          <a href="/tos" class="hover:text-white transition"
+            >Terms of Service</a
+          >
+          <a href="/privacy" class="hover:text-white transition"
+            >Privacy Policy</a
+          >
+          <a href="mailto:dev@serahq.online" class="hover:text-white transition"
+            >Contact</a
+          >
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
