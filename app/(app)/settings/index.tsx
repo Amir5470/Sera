@@ -3,20 +3,100 @@ import { Colors } from "@/constants/colors";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { logOut } from "@/lib/auth";
+import { deleteAccount } from "@/lib/deleteAccount";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 export default function SettingsScreen() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
 
   const handleSignOut = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
       { text: "Sign Out", style: "destructive", onPress: () => logOut() },
     ]);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account",
+      "This will permanently delete your profile, schedule, posts, and all school data. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete My Account",
+          style: "destructive",
+          onPress: async () => {
+            if (!user?.uid || !profile?.schoolId) {
+              Alert.alert(
+                "Error",
+                "Could not delete account. Please try again.",
+              );
+              return;
+            }
+
+            setDeleting(true);
+            try {
+              await deleteAccount(user.uid, profile.schoolId);
+              // User is now logged out automatically by deleteUser()
+              router.replace("/(auth)/sign-in" as any);
+            } catch (error: any) {
+              setDeleting(false);
+              Alert.alert(
+                "Error",
+                error.message || "Failed to delete account. Please try again.",
+              );
+
+              Alert.prompt(
+                "Final Confirmation",
+                "Please enter your password to confirm account deletion. This cannot be undone.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Delete Permanently",
+                    style: "destructive",
+                    onPress: async (password?: string) => {
+                      if (!password) {
+                        Alert.alert(
+                          "Error",
+                          "Password is required to delete account.",
+                        );
+                        return;
+                      }
+                      setDeleting(true);
+                      try {
+                        await deleteAccount(
+                          user!.uid,
+                          profile!.schoolId,
+                          password,
+                        );
+                        router.replace("/(auth)/sign-in" as any);
+                      } catch (e: any) {
+                        setDeleting(false);
+                        Alert.alert("Deletion Failed", e.message);
+                      }
+                    },
+                  },
+                ],
+                "secure-text",
+              );
+            }
+          },
+        },
+      ],
+    );
   };
 
   const SettingsItem = ({
@@ -37,6 +117,15 @@ export default function SettingsScreen() {
       <Ionicons name="chevron-forward" size={20} color={Colors.muted} />
     </PressableScale>
   );
+
+  if (deleting) {
+    return (
+      <View style={styles.deletingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.deletingText}>Deleting your account...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -111,9 +200,9 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>App</Text>
         <View style={styles.card}>
           <SettingsItem
-            icon="help-circle-outline"
-            label="Support"
-            onPress={() => {}}
+            icon="document-text-outline"
+            label="Legal"
+            onPress={() => router.push("/settings/tos-privacy" as any)}
           />
           <View style={styles.divider} />
           <SettingsItem
@@ -125,7 +214,25 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      <Text style={styles.version}>Sera v1.0.0</Text>
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: "#FF4444" }]}>
+          Danger Zone
+        </Text>
+        <View
+          style={[
+            styles.card,
+            { borderColor: "rgba(255, 68, 68, 0.2)", borderWidth: 1 },
+          ]}
+        >
+          <SettingsItem
+            icon="trash-outline"
+            label="Delete Account"
+            color="#FF4444"
+            subtext="Permanently remove your data"
+            onPress={handleDeleteAccount}
+          />
+        </View>
+      </View>
     </ScrollView>
   );
 }
@@ -177,5 +284,15 @@ const styles = StyleSheet.create({
     marginTop: 40,
     marginBottom: 20,
     fontSize: 12,
+  },
+  deletingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deletingText: {
+    color: Colors.muted,
+    fontSize: 16,
+    marginTop: 12,
   },
 });

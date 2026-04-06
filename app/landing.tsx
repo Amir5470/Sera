@@ -354,15 +354,15 @@ export default function Index() {
             <View style={styles.bottomArea}>
               <PressableScale
                 style={styles.button}
-                onPress={() => router.push("/(auth)/sign-in")}
+                onPress={() => router.push("/(auth)/sign-up")}
               >
-                <Text style={styles.buttonText}>Log In</Text>
+                <Text style={styles.buttonText}>Get Started</Text>
               </PressableScale>
               <PressableScale
                 style={styles.secondary}
-                onPress={() => router.push("/(auth)/sign-up")}
+                onPress={() => router.push("/(auth)/sign-in")}
               >
-                <Text style={styles.secondaryText}>Get Started</Text>
+                <Text style={styles.secondaryText}>Log In</Text>
               </PressableScale>
             </View>
           ) : (

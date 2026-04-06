@@ -37,14 +37,15 @@ export const useBellSchedules = (schoolId: string | undefined) => {
   useEffect(() => {
     if (!schoolId) return;
 
-    const key = todayKey();
     const unsub = onSnapshot(
-      doc(db, "schools", schoolId, "dailySchedule", key),
+      doc(db, "schools", schoolId, "dailySchedule", "current"),
       (snap) => {
         if (snap.exists()) {
           const data = snap.data();
-          setActiveScheduleId(data.activeScheduleId || null);
-          setVotes(data.votes || {});
+          const isToday = data.date === todayKey();
+          // Only show data if it matches today's date
+          setActiveScheduleId(isToday ? data.activeScheduleId || null : null);
+          setVotes(isToday ? data.votes || {} : {});
         } else {
           setActiveScheduleId(null);
           setVotes({});

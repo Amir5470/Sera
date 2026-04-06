@@ -1,10 +1,10 @@
 import {
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    serverTimestamp,
-    setDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  serverTimestamp,
+  setDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -59,12 +59,22 @@ export const voteForSchedule = async (
   userId: string,
   scheduleId: string,
 ) => {
-  const key = todayKey();
-  const ref = doc(db, "schools", schoolId, "dailySchedule", key);
+  const today = todayKey();
+  const ref = doc(db, "schools", schoolId, "dailySchedule", "current");
   const snap = await getDoc(ref);
 
-  const existing = snap.exists() ? snap.data() : { votes: {} };
-  const votes = { ...existing.votes, [userId]: scheduleId };
+  let votes: Record<string, string> = {};
+  if (snap.exists()) {
+    const data = snap.data();
+    if (data.date === today) {
+      votes = { ...data.votes, [userId]: scheduleId };
+    } else {
+      // New day: reset the map with just the current user's vote
+      votes = { [userId]: scheduleId };
+    }
+  } else {
+    votes = { [userId]: scheduleId };
+  }
 
   // Tally votes — simple majority (most votes wins)
   const tally: Record<string, number> = {};
@@ -75,20 +85,25 @@ export const voteForSchedule = async (
     (a, b) => b[1] - a[1],
   )[0][0];
 
-  await setDoc(
-    ref,
-    { votes, activeScheduleId, updatedAt: serverTimestamp() },
-    { merge: true },
-  );
+  await setDoc(ref, {
+    votes,
+    activeScheduleId,
+    date: today,
+    updatedAt: serverTimestamp(),
+  });
   return activeScheduleId;
 };
 
 // Get today's active schedule ID and vote map
 export const getDailySchedule = async (schoolId: string) => {
-  const key = todayKey();
-  const snap = await getDoc(doc(db, "schools", schoolId, "dailySchedule", key));
+  const today = todayKey();
+  const snap = await getDoc(
+    doc(db, "schools", schoolId, "dailySchedule", "current"),
+  );
   if (!snap.exists()) return null;
-  return snap.data() as {
+  const data = snap.data();
+  if (data.date !== today) return null;
+  return data as {
     votes: Record<string, string>;
     activeScheduleId: string;
   };

@@ -270,6 +270,145 @@ function NewBellScheduleModal({
   );
 }
 
+// ─── Manual Class Entry Modal ───────────────────────────────────────────────
+
+function ManualEntryModal({
+  visible,
+  onClose,
+  onSave,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSave: (cls: ScannedClass) => Promise<void>;
+}) {
+  const [name, setName] = useState("");
+  const [teacher, setTeacher] = useState("");
+  const [period, setPeriod] = useState("");
+  const [type, setType] = useState<"class" | "club">("class");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!name || !period) {
+      Alert.alert("Error", "Class name and Period are required.");
+      return;
+    }
+    setSaving(true);
+    await onSave({
+      name,
+      teacher,
+      period,
+      type,
+      emoji: type === "club" ? "🎉" : "📚",
+      startTime: "", // Will be filled by the Bell Schedule automatically
+      endTime: "",
+    });
+    setSaving(false);
+    setName("");
+    setTeacher("");
+    setPeriod("");
+    onClose();
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <View style={styles.modal}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Add Class Manually</Text>
+          <PressableScale onPress={onClose}>
+            <Text style={styles.modalClose}>Cancel</Text>
+          </PressableScale>
+        </View>
+
+        <ScrollView contentContainerStyle={{ gap: 15 }}>
+          <View>
+            <Text style={styles.sectionLabel}>Class Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. AP Biology"
+              placeholderTextColor={Colors.muted}
+              value={name}
+              onChangeText={setName}
+            />
+          </View>
+
+          <View>
+            <Text style={styles.sectionLabel}>Teacher</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. Mr. Smith"
+              placeholderTextColor={Colors.muted}
+              value={teacher}
+              onChangeText={setTeacher}
+            />
+          </View>
+
+          <View>
+            <Text style={styles.sectionLabel}>Period</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. 1st"
+              placeholderTextColor={Colors.muted}
+              value={period}
+              onChangeText={setPeriod}
+            />
+          </View>
+
+          <View style={styles.scanRow}>
+            <PressableScale
+              style={[
+                styles.countButton,
+                type === "class" && styles.countButtonActive,
+              ]}
+              onPress={() => setType("class")}
+            >
+              <Text
+                style={[
+                  styles.countButtonText,
+                  type === "class" && styles.countButtonTextActive,
+                ]}
+              >
+                Academic Class
+              </Text>
+            </PressableScale>
+            <PressableScale
+              style={[
+                styles.countButton,
+                type === "club" && styles.countButtonActive,
+              ]}
+              onPress={() => setType("club")}
+            >
+              <Text
+                style={[
+                  styles.countButtonText,
+                  type === "club" && styles.countButtonTextActive,
+                ]}
+              >
+                Club / Activity
+              </Text>
+            </PressableScale>
+          </View>
+
+          <PressableScale
+            style={styles.saveButton}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.saveButtonText}>Add to Schedule</Text>
+            )}
+          </PressableScale>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Daily Schedule Picker ───────────────────────────────────────────────────
 
 function DailySchedulePicker({
@@ -418,12 +557,20 @@ export default function Schedule() {
   const [managing, setManaging] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [scannedClasses, setScannedClasses] = useState<ScannedClass[]>([]);
+  const [manualVisible, setManualVisible] = useState(false);
+  const [scanOptionsVisible, setScanOptionsVisible] = useState(false);
   const [scannedResults, setScannedResults] = useState<ScannedClass[]>([]);
   const [saving, setSaving] = useState(false);
 
+  // Check if today is a weekend
+  const isWeekend = useMemo(() => {
+    const day = new Date().getDay();
+    return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+  }, []);
+
   // Merge today's bell schedule times into the class list for display
   const sortedClasses = useMemo(() => {
-    if (!classRooms) return [];
+    if (!classRooms || isWeekend) return []; // Return empty on weekends
     return [...classRooms].sort((a, b) => {
       const toMinutes = (t?: string) => {
         if (!t || !t.includes(":")) return 9999;
@@ -475,20 +622,28 @@ export default function Schedule() {
   };
 
   const startScheduleScan = async (useCamera: boolean) => {
+    // 1. Ensure the options modal is closed before launching picker
+    setScanOptionsVisible(false);
+
     const base64 = await pickOrTakePhoto(useCamera);
     if (!base64) {
       setScanning(false);
+      setManaging(true); // Return to manage modal if cancelled
       return;
     }
+
+    // 2. We set managing to false so the Scan Step modal can take over the screen
     setManaging(false);
     setScanStep("schedule");
+
     try {
       const classes = await extractClasses(base64);
       setScannedClasses(classes);
       setScanStep("times");
-    } catch {
+    } catch (e) {
       Alert.alert("Error", "Could not read schedule.");
       setScanStep("idle");
+      setManaging(true);
     } finally {
       setScanning(false);
     }
@@ -536,6 +691,16 @@ export default function Schedule() {
       Alert.alert("Error", "Failed to save classes.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleManualSave = async (cls: ScannedClass) => {
+    if (!user || !profile?.schoolId) return;
+    try {
+      await joinOrCreateClass(user.uid, profile.schoolId, cls);
+      successNotification();
+    } catch (e) {
+      Alert.alert("Error", "Could not save class.");
     }
   };
 
@@ -598,7 +763,11 @@ export default function Schedule() {
           );
         }}
         ListEmptyComponent={
-          <Text style={styles.empty}>No classes yet. Tap Manage to add.</Text>
+          isWeekend ? (
+            <Text style={styles.empty}>Enjoy your weekend!</Text>
+          ) : (
+            <Text style={styles.empty}>No classes yet. Tap Manage to add.</Text>
+          )
         }
       />
 
@@ -791,19 +960,26 @@ export default function Schedule() {
             </View>
           ) : (
             <>
-              <Text style={styles.sectionLabel}>Scan your schedule</Text>
+              <Text style={styles.sectionLabel}>Add to your schedule</Text>
               <View style={styles.scanRow}>
                 <PressableScale
                   style={styles.scanButton}
-                  onPress={() => startScheduleScan(true)}
+                  onPress={() => {
+                    setManaging(false);
+                    setScanOptionsVisible(true);
+                  }}
                 >
-                  <Text style={styles.scanButtonText}>📷 Take Photo</Text>
+                  <Text style={styles.scanButtonText}>📷 Scan AI</Text>
                 </PressableScale>
                 <PressableScale
-                  style={styles.scanButton}
-                  onPress={() => startScheduleScan(false)}
+                  style={[styles.scanButton, { borderColor: Colors.primary }]}
+                  onPress={() => setManualVisible(true)}
                 >
-                  <Text style={styles.scanButtonText}>🖼️ Upload</Text>
+                  <Text
+                    style={[styles.scanButtonText, { color: Colors.primary }]}
+                  >
+                    ✍️ Manual
+                  </Text>
                 </PressableScale>
               </View>
             </>
@@ -837,6 +1013,56 @@ export default function Schedule() {
               </View>
             )}
           />
+        </View>
+      </Modal>
+
+      <ManualEntryModal
+        visible={manualVisible}
+        onClose={() => setManualVisible(false)}
+        onSave={handleManualSave}
+      />
+
+      {/* SCAN OPTIONS MODAL */}
+      <Modal
+        visible={scanOptionsVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.modal}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Scan Schedule</Text>
+            <PressableScale
+              onPress={() => {
+                setScanOptionsVisible(false);
+                setManaging(true);
+              }}
+            >
+              <Text style={styles.modalClose}>Cancel</Text>
+            </PressableScale>
+          </View>
+          <Text style={styles.subtitle}>
+            Choose an option to import your classes using AI.
+          </Text>
+          <View style={styles.scanRow}>
+            <PressableScale
+              style={styles.scanButton}
+              onPress={() => {
+                setScanOptionsVisible(false);
+                startScheduleScan(true);
+              }}
+            >
+              <Text style={styles.scanButtonText}>📷 Take Photo</Text>
+            </PressableScale>
+            <PressableScale
+              style={styles.scanButton}
+              onPress={() => {
+                setScanOptionsVisible(false);
+                startScheduleScan(false);
+              }}
+            >
+              <Text style={styles.scanButtonText}>🖼️ Photo Library</Text>
+            </PressableScale>
+          </View>
         </View>
       </Modal>
     </View>
