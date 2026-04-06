@@ -53,6 +53,7 @@ Sera replaces all of it.
 ## Getting Started
 
 Sera is still in development, not avaliable for use.
+Apply for Beta Testing at [Sera HQ Official Website](https://serahq.online)
 
 ## Privacy & Legal
 
@@ -86,11 +87,11 @@ Sera is designed to stay compliant with student data policies, which governs tec
 - [x] Project brief and pitch deck
 - [x] Firebase project setup
 - [x] Auth flow (sign up / sign in)
-- [ ] Schedule input + display
-- [ ] Class Rooms (auto-generated per class)
-- [ ] School Feed
-- [ ] Clubs & Groups
-- [ ] Beta launch at Worthington school
+- [x] Schedule input + display
+- [x] Class Rooms (auto-generated per class)
+- [x] School Feed
+- [x] Clubs & Groups
+- [ ] Beta launch
 
 ---
 
