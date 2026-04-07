@@ -9,15 +9,15 @@ import { addReply, createPost, deletePost } from "@/lib/posts";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 type PostCardProps = {
@@ -91,7 +91,7 @@ function PostCard({ post, schoolId, userId, displayName }: PostCardProps) {
           onPress={() => setExpanded(!expanded)}
         >
           <Text style={styles.replyToggle}>
-            {expanded ? "Hide replies" : "Reply"}
+            {expanded ? "Hide replies" : "View Replies"}
           </Text>
         </PressableScale>
       </View>

@@ -199,7 +199,7 @@ function NewBellScheduleModal({
         />
         <Text style={styles.sectionLabel}>Number of Periods</Text>
         <View style={styles.periodCountRow}>
-          {[6, 7, 8, 9].map((n) => (
+          {[4, 5, 6, 7, 8, 9].map((n) => (
             <PressableScale
               key={n}
               style={[
