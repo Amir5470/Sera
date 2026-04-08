@@ -722,15 +722,9 @@ export default function Schedule() {
           .replace(/(st|nd|rd|th)/gi, "")
           .trim()
           .replace(/^0+/, "");
-      console.log(
-        "activeSchedule periods:",
-        activeSchedule.periods.map((p) => normalize(p.period)),
-      );
-      console.log("cls period normalized:", normalize(cls.period));
       const slot = activeSchedule.periods.find(
         (p) => normalize(p.period) === normalize(cls.period),
       );
-      console.log("slot found:", slot);
       if (slot) return { startTime: slot.startTime, endTime: slot.endTime };
     }
     return { startTime: cls.startTime, endTime: cls.endTime };

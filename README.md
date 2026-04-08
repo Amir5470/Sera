@@ -82,18 +82,58 @@ Sera is designed to stay compliant with student data policies, which governs tec
 
 ---s
 
-## Roadmap
-
-- [x] Project brief and pitch deck
-- [x] Firebase project setup
-- [x] Auth flow (sign up / sign in)
-- [x] Schedule input + display
-- [x] Class Rooms (auto-generated per class)
-- [x] School Feed
-- [x] Clubs & Groups
-- [ ] Beta launch
+#Roadmap
 
 ---
+
+## 🟢 Completed & Core
+
+_Built and verified features._
+
+- [x] **Project Strategy:** Project brief and pitch deck completed.
+- [x] **Infrastructure:** Firebase project setup and configuration.
+- [x] **Authentication:** Secure Auth flow (sign up / sign in).
+- [x] **Academics:** Schedule input + display logic.
+- [x] **Communication:** Class Rooms (auto-generated per class).
+- [x] **Community:** School Feed integration.
+- [x] **Organization:** Clubs & Groups modules.
+
+---
+
+## 🟡 Phase 1: Pre-Launch Polish & Stability
+
+_Focusing on security, compliance, and user experience._
+
+- [x] **Hardened Age Verification:** Implement a persistent block/lockout for users under 13 to prevent easy "birthday switching" during onboarding.
+- [ ] **Push Notifications:** Alert users for new Class Room messages or School Feed updates using Firebase Cloud Messaging (FCM).
+- [x] **Data Privacy & Legal:** Finalize Privacy Policy and Terms of Service (required for App Store & Play Store approval).
+- [ ] **Profile Customization:** Allow users to personalize accounts with avatars, bios, and school-specific flair.
+
+---
+
+## 🟠 Phase 2: Beta & User Growth
+
+_Testing in the wild and gathering student feedback._
+
+- [ ] **Closed Beta Launch:** Limited release to a small group of students.
+- [ ] **Bug Reporting System:** Built-in mechanism for testers to report crashes or UI glitches.
+- [ ] **Content Moderation:** Basic flagging system for the School Feed and Class Rooms to ensure community safety.
+- [ ] **Analytics Integration:** Track feature engagement (Clubs vs. Schedules) to guide future development.
+
+---
+
+## 🔴 Phase 3: Post-Launch & Scaling
+
+_Long-term growth and advanced features._
+
+- [ ] **Public Launch:** Official release on the Apple App Store and Google Play Store.
+- [ ] **Cross-Platform Mirroring:** Optimization for users on both iPhone/Android and macOS Sequoia mirroring.
+- [ ] **Collaborative Study Tools:** Shared notes and group task lists within Class Rooms.
+- [ ] **Sustainability:** Explore non-intrusive monetization (e.g., premium themes or club-specific features).
+
+---
+
+> **Note:** This roadmap is a living document and will be updated as development progresses.
 
 ## Developer
 
