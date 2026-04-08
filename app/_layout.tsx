@@ -1,7 +1,9 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, View } from "react-native";
+import TourGuide from "../components/tour-guide";
 import { useAuth } from "../hooks/useAuth";
 import { useProfile } from "../hooks/useProfile";
 import Splash from "./index";
@@ -21,9 +23,19 @@ export default function RootLayout() {
   const [splashComplete, setSplashComplete] = useState(false);
   const router = useRouter();
   const segments = useSegments();
+  const [showTour, setShowTour] = useState(false);
 
   // Force 2-second minimum splash time
   useEffect(() => {
+    const checkTour = async () => {
+      try {
+        const v = await AsyncStorage.getItem("tour:completed");
+        if (!v) setShowTour(true);
+      } catch {
+        setShowTour(true);
+      }
+    };
+    checkTour();
     const timer = setTimeout(() => {
       setSplashComplete(true);
     }, 2000);
@@ -90,7 +102,17 @@ export default function RootLayout() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={{ flex: 1, backgroundColor: "#0D0A1A" }}>
-          {!splashComplete ? <Splash /> : <Slot />}
+          {!splashComplete || authLoading || profileLoading ? (
+            <Splash />
+          ) : (
+            <Slot />
+          )}
+          <TourGuide
+            visible={
+              showTour && !(!splashComplete || authLoading || profileLoading)
+            }
+            onClose={() => setShowTour(false)}
+          />
         </View>
       </KeyboardAvoidingView>
     </ThemeProvider>

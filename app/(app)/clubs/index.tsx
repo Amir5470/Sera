@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "../../../constants/colors";
 import { useAuth } from "../../../hooks/useAuth";
 import { useClubs } from "../../../hooks/useClubs";
@@ -118,7 +119,7 @@ export default function Clubs() {
           style={styles.backdrop}
           onPress={() => setSelectedClub(null)}
         >
-          <View style={styles.sheet}>
+          <SafeAreaView edges={["bottom"]} style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <Text style={styles.sheetTitle}>{selectedClub?.name}</Text>
             <Pressable
@@ -140,7 +141,7 @@ export default function Clubs() {
             >
               <Text style={styles.sheetActionText}>Cancel</Text>
             </Pressable>
-          </View>
+          </SafeAreaView>
         </Pressable>
       </Modal>
     </View>

@@ -1,5 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { PressableScale } from "../../components/animated-helpers";
 import { Colors } from "../../constants/colors";
 import { useAuth } from "../../hooks/useAuth";
@@ -19,10 +20,119 @@ import { useClassRooms } from "../../hooks/useClassRooms";
 import { useProfile } from "../../hooks/useProfile";
 import { BellPeriod, voteForSchedule } from "../../lib/bellSchedules";
 import { joinOrCreateClass, leaveClass } from "../../lib/classes";
+import fetchWithLimit from "../../lib/fetchWithLimit";
 import { successNotification } from "../../lib/haptics";
+import { sanitizeObjectPayload } from "../../lib/inputSanitizer";
 
 const CLAUDE_MODEL = "claude-3-5-haiku-20241022";
 const ANTHROPIC_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_KEY!;
+const PERIOD_OPTIONS = Array.from({ length: 9 }, (_, i) => {
+  const period = i + 1;
+  const suffix =
+    period === 1 ? "st" : period === 2 ? "nd" : period === 3 ? "rd" : "th";
+  return `${period}${suffix}`;
+});
+
+const normalizePeriod = (period: string) =>
+  period
+    .toLowerCase()
+    .replace(/period/g, "")
+    .replace(/(st|nd|rd|th)/g, "")
+    .trim()
+    .replace(/^0+/, "");
+
+const getPeriodSortValue = (period: string) => {
+  const value = Number.parseInt(normalizePeriod(period), 10);
+  return Number.isFinite(value) ? value : Number.MAX_SAFE_INTEGER;
+};
+
+const sortPeriods = (periods: string[]) =>
+  [...periods].sort((a, b) => getPeriodSortValue(a) - getPeriodSortValue(b));
+
+const getCurrentMinutes = () => {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+};
+
+const parseTimeToMinutes = (time?: string) => {
+  if (!time) return null;
+  const trimmed = time.trim().toLowerCase();
+  const match = trimmed.match(/^(\d{1,2})(?:\:(\d{2}))?\s*(am|pm)?$/);
+  if (!match) return null;
+
+  let hours = Number.parseInt(match[1], 10);
+  const minutes = Number.parseInt(match[2] || "0", 10);
+  const meridiem = match[3];
+
+  if (meridiem === "am") {
+    if (hours === 12) hours = 0;
+  } else if (meridiem === "pm" && hours < 12) {
+    hours += 12;
+  }
+
+  return hours * 60 + minutes;
+};
+
+const hasMeridiem = (time?: string) => !!time?.trim().match(/\b(am|pm)\b/i);
+
+const resolvePeriodWindow = (startTime?: string, endTime?: string) => {
+  const start = parseTimeToMinutes(startTime);
+  const end = parseTimeToMinutes(endTime);
+
+  if (start == null || end == null) return null;
+
+  if (end > start) {
+    return { start, end };
+  }
+
+  if (!hasMeridiem(startTime) && !hasMeridiem(endTime)) {
+    const adjustedEnd = end + 12 * 60;
+    if (adjustedEnd > start) {
+      return { start, end: adjustedEnd };
+    }
+  }
+
+  return null;
+};
+
+const formatTimeLabel = (time?: string) => time || "--:--";
+
+const getPeriodProgress = (
+  startTime?: string,
+  endTime?: string,
+  nowMinutes?: number,
+) => {
+  const window = resolvePeriodWindow(startTime, endTime);
+
+  if (!window || nowMinutes == null) {
+    return null;
+  }
+
+  const { start, end } = window;
+
+  if (nowMinutes < start) {
+    return {
+      progress: 0,
+      label: `Starts at ${formatTimeLabel(startTime)}`,
+      variant: "upcoming" as const,
+    };
+  }
+
+  if (nowMinutes >= end) {
+    return {
+      progress: 1,
+      label: "Finished",
+      variant: "past" as const,
+    };
+  }
+
+  const progress = (nowMinutes - start) / (end - start);
+  return {
+    progress: Math.max(0, Math.min(1, progress)),
+    label: `Ends at ${formatTimeLabel(endTime)}`,
+    variant: "active" as const,
+  };
+};
 
 interface ScannedClass {
   name: string;
@@ -41,7 +151,7 @@ interface PeriodTime {
 }
 
 const uriToBase64 = async (uri: string): Promise<string> => {
-  const response = await fetch(uri);
+  const response = await fetchWithLimit(uri);
   const blob = await response.blob();
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -52,35 +162,38 @@ const uriToBase64 = async (uri: string): Promise<string> => {
 };
 
 const callClaude = async (base64: string, prompt: string) => {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: 1000,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: "image/jpeg",
-                data: base64,
+  const response = await fetchWithLimit(
+    "https://api.anthropic.com/v1/messages",
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: CLAUDE_MODEL,
+        max_tokens: 1000,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: "image/jpeg",
+                  data: base64,
+                },
               },
-            },
-            { type: "text", text: prompt },
-          ],
-        },
-      ],
-    }),
-  });
+              { type: "text", text: prompt },
+            ],
+          },
+        ],
+      }),
+    },
+  );
   if (!response.ok) throw new Error(`API ${response.status}`);
   const data = await response.json();
   const raw = data.content[0].text;
@@ -136,24 +249,40 @@ function NewBellScheduleModal({
   onSave: (name: string, periods: BellPeriod[]) => Promise<void>;
 }) {
   const [name, setName] = useState("");
-  const [periodCount, setPeriodCount] = useState(8);
-  const [periods, setPeriods] = useState<BellPeriod[]>(
-    Array.from({ length: 8 }, (_, i) => ({
-      period: String(i + 1),
-      startTime: "",
-      endTime: "",
-    })),
-  );
+  const createEmptyPeriodTimes = () =>
+    Object.fromEntries(
+      PERIOD_OPTIONS.map((period) => [period, { startTime: "", endTime: "" }]),
+    ) as Record<string, { startTime: string; endTime: string }>;
+  const [selectedPeriods, setSelectedPeriods] =
+    useState<string[]>(PERIOD_OPTIONS);
+  const [periodTimes, setPeriodTimes] = useState<
+    Record<string, { startTime: string; endTime: string }>
+  >(createEmptyPeriodTimes);
   const [saving, setSaving] = useState(false);
 
   const updatePeriod = (
-    index: number,
-    field: keyof BellPeriod,
+    period: string,
+    field: "startTime" | "endTime",
     value: string,
   ) => {
-    const updated = [...periods];
-    updated[index] = { ...updated[index], [field]: value };
-    setPeriods(updated);
+    setPeriodTimes((current) => ({
+      ...current,
+      [period]: {
+        ...current[period],
+        [field]: value,
+      },
+    }));
+  };
+
+  const resetForm = () => {
+    setName("");
+    setSelectedPeriods(PERIOD_OPTIONS);
+    setPeriodTimes(createEmptyPeriodTimes());
+  };
+
+  const closeModal = () => {
+    resetForm();
+    onClose();
   };
 
   const handleSave = async () => {
@@ -161,19 +290,30 @@ function NewBellScheduleModal({
       Alert.alert("Required", "Give this schedule a name.");
       return;
     }
-    const filled = periods
-      .slice(0, periodCount)
-      .filter((p) => p.startTime && p.endTime);
-    if (filled.length === 0) {
-      Alert.alert("Required", "Add times for at least one period.");
+    if (selectedPeriods.length === 0) {
+      Alert.alert("Required", "Select at least one period.");
+      return;
+    }
+    const periods = sortPeriods(selectedPeriods).map((period) => ({
+      period,
+      startTime: periodTimes[period]?.startTime || "",
+      endTime: periodTimes[period]?.endTime || "",
+    }));
+    if (periods.some((period) => !period.startTime || !period.endTime)) {
+      Alert.alert(
+        "Required",
+        "Add both start and end times for every selected period.",
+      );
       return;
     }
     setSaving(true);
-    await onSave(name.trim(), periods.slice(0, periodCount));
-    successNotification();
-    setSaving(false);
-    onClose();
-    setName("");
+    try {
+      await onSave(name.trim(), periods);
+      successNotification();
+      closeModal();
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -182,10 +322,10 @@ function NewBellScheduleModal({
       animationType="slide"
       presentationStyle="pageSheet"
     >
-      <View style={styles.modal}>
+      <SafeAreaView style={styles.modal} edges={["top", "bottom"]}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>New Schedule Type</Text>
-          <PressableScale onPress={onClose}>
+          <PressableScale onPress={closeModal}>
             <Text style={styles.modalClose}>Cancel</Text>
           </PressableScale>
         </View>
@@ -197,62 +337,79 @@ function NewBellScheduleModal({
           value={name}
           onChangeText={setName}
         />
-        <Text style={styles.sectionLabel}>Number of Periods</Text>
-        <View style={styles.periodCountRow}>
-          {[4, 5, 6, 7, 8, 9].map((n) => (
-            <PressableScale
-              key={n}
-              style={[
-                styles.countButton,
-                periodCount === n && styles.countButtonActive,
-              ]}
-              onPress={() => {
-                setPeriodCount(n);
-                setPeriods(
-                  Array.from({ length: n }, (_, i) => ({
-                    period: String(i + 1),
-                    startTime: periods[i]?.startTime || "",
-                    endTime: periods[i]?.endTime || "",
-                  })),
-                );
-              }}
-            >
-              <Text
+        <Text style={styles.sectionLabel}>Select Periods</Text>
+        <Text style={styles.subtitle}>
+          Check only the periods that meet on this schedule.
+        </Text>
+        <View style={styles.periodGrid}>
+          {PERIOD_OPTIONS.map((period) => {
+            const selected = selectedPeriods.includes(period);
+            return (
+              <PressableScale
+                key={period}
                 style={[
-                  styles.countButtonText,
-                  periodCount === n && styles.countButtonTextActive,
+                  styles.periodToggle,
+                  selected && styles.periodToggleActive,
                 ]}
+                onPress={() => {
+                  setSelectedPeriods((current) =>
+                    current.includes(period)
+                      ? current.filter((value) => value !== period)
+                      : sortPeriods([...current, period]),
+                  );
+                }}
               >
-                {n}
-              </Text>
-            </PressableScale>
-          ))}
+                <View
+                  style={[
+                    styles.checkboxBox,
+                    selected && styles.checkboxBoxActive,
+                  ]}
+                >
+                  {selected ? <View style={styles.checkboxDot} /> : null}
+                </View>
+                <Text
+                  style={[
+                    styles.periodToggleText,
+                    selected && styles.periodToggleTextActive,
+                  ]}
+                >
+                  {period}
+                </Text>
+              </PressableScale>
+            );
+          })}
         </View>
         <Text style={styles.sectionLabel}>Period Times</Text>
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ gap: 10, paddingBottom: 20 }}
         >
-          {periods.slice(0, periodCount).map((p, i) => (
-            <View key={i} style={styles.periodRow}>
-              <Text style={styles.periodLabel}>Period {p.period}</Text>
-              <TextInput
-                style={styles.timeInputSmall}
-                placeholder="08:40"
-                placeholderTextColor={Colors.muted}
-                value={p.startTime}
-                onChangeText={(v) => updatePeriod(i, "startTime", v)}
-              />
-              <Text style={{ color: Colors.muted }}>–</Text>
-              <TextInput
-                style={styles.timeInputSmall}
-                placeholder="09:25"
-                placeholderTextColor={Colors.muted}
-                value={p.endTime}
-                onChangeText={(v) => updatePeriod(i, "endTime", v)}
-              />
-            </View>
-          ))}
+          {sortPeriods(selectedPeriods).map((period) => {
+            const values = periodTimes[period] || {
+              startTime: "",
+              endTime: "",
+            };
+            return (
+              <View key={period} style={styles.periodRow}>
+                <Text style={styles.periodLabel}>Period {period}</Text>
+                <TextInput
+                  style={styles.timeInputSmall}
+                  placeholder="08:40"
+                  placeholderTextColor={Colors.muted}
+                  value={values.startTime}
+                  onChangeText={(v) => updatePeriod(period, "startTime", v)}
+                />
+                <Text style={{ color: Colors.muted }}>–</Text>
+                <TextInput
+                  style={styles.timeInputSmall}
+                  placeholder="09:25"
+                  placeholderTextColor={Colors.muted}
+                  value={values.endTime}
+                  onChangeText={(v) => updatePeriod(period, "endTime", v)}
+                />
+              </View>
+            );
+          })}
         </ScrollView>
         <PressableScale
           style={[styles.saveButton, saving && { opacity: 0.5 }]}
@@ -265,7 +422,7 @@ function NewBellScheduleModal({
             <Text style={styles.saveButtonText}>Save Schedule</Text>
           )}
         </PressableScale>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -292,21 +449,29 @@ function ManualEntryModal({
       Alert.alert("Error", "Class name and Period are required.");
       return;
     }
-    setSaving(true);
-    await onSave({
-      name,
-      teacher,
-      period,
-      type,
-      emoji: type === "club" ? "🎉" : "📚",
-      startTime: "", // Will be filled by the Bell Schedule automatically
-      endTime: "",
-    });
-    setSaving(false);
-    setName("");
-    setTeacher("");
-    setPeriod("");
-    onClose();
+    // sanitize manual entry
+    try {
+      const clean = sanitizeObjectPayload({ name, teacher, period }, 200);
+      const payload: ScannedClass = {
+        name: clean.name,
+        teacher: clean.teacher,
+        period: clean.period,
+        type,
+        emoji: type === "club" ? "🎉" : "📚",
+        startTime: "",
+        endTime: "",
+      };
+      setSaving(true);
+      await onSave(payload);
+      setSaving(false);
+      setName("");
+      setTeacher("");
+      setPeriod("");
+      onClose();
+    } catch (e: any) {
+      Alert.alert("Invalid input", e.message || "Please check your entries.");
+      return;
+    }
   };
 
   return (
@@ -315,7 +480,7 @@ function ManualEntryModal({
       animationType="slide"
       presentationStyle="pageSheet"
     >
-      <View style={styles.modal}>
+      <SafeAreaView style={styles.modal} edges={["top", "bottom"]}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Add Class Manually</Text>
           <PressableScale onPress={onClose}>
@@ -404,7 +569,7 @@ function ManualEntryModal({
             )}
           </PressableScale>
         </ScrollView>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -467,7 +632,7 @@ function DailySchedulePicker({
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <View style={styles.modal}>
+        <SafeAreaView style={styles.modal} edges={["top", "bottom"]}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Today&apos;s Schedule</Text>
             <PressableScale onPress={() => setPickerVisible(false)}>
@@ -504,8 +669,9 @@ function DailySchedulePicker({
                       {s.name}
                     </Text>
                     <Text style={styles.scheduleOptionPeriods}>
-                      {s.periods.length} periods • {s.periods[0]?.startTime} –{" "}
-                      {s.periods[s.periods.length - 1]?.endTime}
+                      {s.periods.length} period
+                      {s.periods.length !== 1 ? "s" : ""} •{" "}
+                      {s.periods.map((period) => period.period).join(", ")}
                     </Text>
                   </View>
                   <View style={styles.voteChip}>
@@ -530,7 +696,7 @@ function DailySchedulePicker({
               </Text>
             </PressableScale>
           </ScrollView>
-        </View>
+        </SafeAreaView>
       </Modal>
 
       <NewBellScheduleModal
@@ -561,6 +727,14 @@ export default function Schedule() {
   const [scanOptionsVisible, setScanOptionsVisible] = useState(false);
   const [scannedResults, setScannedResults] = useState<ScannedClass[]>([]);
   const [saving, setSaving] = useState(false);
+  const [nowMinutes, setNowMinutes] = useState(() => getCurrentMinutes());
+
+  useEffect(() => {
+    const updateNow = () => setNowMinutes(getCurrentMinutes());
+    updateNow();
+    const timer = setInterval(updateNow, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Check if today is a weekend
   const isWeekend = useMemo(() => {
@@ -571,7 +745,20 @@ export default function Schedule() {
   // Merge today's bell schedule times into the class list for display
   const sortedClasses = useMemo(() => {
     if (!classRooms || isWeekend) return []; // Return empty on weekends
-    return [...classRooms].sort((a, b) => {
+    const activePeriods = activeSchedule
+      ? sortPeriods(activeSchedule.periods.map((period) => period.period))
+      : [];
+    const activePeriodOrder = new Map(
+      activePeriods.map((period, index) => [normalizePeriod(period), index]),
+    );
+    const activePeriodSet = new Set(activePeriods.map(normalizePeriod));
+    const visibleClasses = activeSchedule
+      ? classRooms.filter((cls) =>
+          activePeriodSet.has(normalizePeriod(cls.period)),
+        )
+      : classRooms;
+
+    return [...visibleClasses].sort((a, b) => {
       const toMinutes = (t?: string) => {
         if (!t || !t.includes(":")) return 9999;
         const [h, m] = t.split(":").map(Number);
@@ -580,18 +767,23 @@ export default function Schedule() {
       // Override times with today's active bell schedule if available
       const getStart = (cls: (typeof classRooms)[0]) => {
         if (activeSchedule) {
-          const normalize = (p: string) =>
-            p.replace(/(st|nd|rd|th)/gi, "").trim();
           const slot = activeSchedule.periods.find(
-            (p) => normalize(p.period) === normalize(cls.period),
+            (p) => normalizePeriod(p.period) === normalizePeriod(cls.period),
           );
           if (slot) return toMinutes(slot.startTime);
         }
         return toMinutes(cls.startTime);
       };
+      const orderA =
+        activePeriodOrder.get(normalizePeriod(a.period)) ??
+        Number.MAX_SAFE_INTEGER;
+      const orderB =
+        activePeriodOrder.get(normalizePeriod(b.period)) ??
+        Number.MAX_SAFE_INTEGER;
+      if (activeSchedule && orderA !== orderB) return orderA - orderB;
       return getStart(a) - getStart(b);
     });
-  }, [classRooms, activeSchedule]);
+  }, [classRooms, activeSchedule, isWeekend]);
 
   const today = new Date().toLocaleDateString("en-US", {
     month: "short",
@@ -679,9 +871,22 @@ export default function Schedule() {
     if (!user || !profile?.schoolId) return;
     setSaving(true);
     try {
+      const cleaned = scannedResults.map((cls) => {
+        const clean = sanitizeObjectPayload(cls, 200);
+        return {
+          name: clean.name,
+          teacher: clean.teacher,
+          period: clean.period,
+          type: clean.type,
+          emoji: clean.emoji || "📖",
+          startTime: clean.startTime || "",
+          endTime: clean.endTime || "",
+        };
+      });
+
       await Promise.all(
-        scannedResults.map((cls) =>
-          joinOrCreateClass(user.uid, profile.schoolId, cls),
+        cleaned.map((cls) =>
+          joinOrCreateClass(user.uid, profile.schoolId, cls as any),
         ),
       );
       successNotification();
@@ -717,367 +922,404 @@ export default function Schedule() {
   // Get display times for a class card (override from active bell schedule)
   const getDisplayTimes = (cls: (typeof classRooms)[0]) => {
     if (activeSchedule) {
-      const normalize = (p: string) =>
-        p
-          .replace(/(st|nd|rd|th)/gi, "")
-          .trim()
-          .replace(/^0+/, "");
       const slot = activeSchedule.periods.find(
-        (p) => normalize(p.period) === normalize(cls.period),
+        (p) => normalizePeriod(p.period) === normalizePeriod(cls.period),
       );
       if (slot) return { startTime: slot.startTime, endTime: slot.endTime };
     }
     return { startTime: cls.startTime, endTime: cls.endTime };
   };
   return (
-    <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Text style={styles.header}>My Schedule</Text>
-        <Text style={styles.dateText}>{today}</Text>
-      </View>
-
-      {/* Daily schedule picker banner */}
-      {profile?.schoolId && user?.uid && (
-        <DailySchedulePicker schoolId={profile.schoolId} userId={user.uid} />
-      )}
-
-      <FlatList
-        data={sortedClasses}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 20, paddingTop: 12 }}
-        renderItem={({ item }) => {
-          const { startTime, endTime } = getDisplayTimes(item);
-          return (
-            <View style={styles.card}>
-              <View style={styles.emojiContainer}>
-                <Text style={styles.emojiText}>{item.emoji || "📖"}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.className}>{item.name}</Text>
-                <Text style={styles.classDetail}>
-                  Period {item.period} • {startTime || "--:--"} –{" "}
-                  {endTime || "--:--"}
-                </Text>
-                {item.teacher ? (
-                  <Text style={styles.classTeacher}>{item.teacher}</Text>
-                ) : null}
-              </View>
-            </View>
-          );
-        }}
-        ListEmptyComponent={
-          isWeekend ? (
-            <Text style={styles.empty}>Enjoy your weekend!</Text>
-          ) : (
-            <Text style={styles.empty}>No classes yet. Tap Manage to add.</Text>
-          )
-        }
-      />
-
-      <PressableScale
-        style={styles.manageButton}
-        onPress={() => setManaging(true)}
-      >
-        <Text style={styles.manageButtonText}>⚙️ Manage Schedule</Text>
-      </PressableScale>
-
-      {/* TIMES SCAN MODAL */}
-      <Modal
-        visible={scanStep === "times"}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.modal}>
-          <Text style={styles.modalTitle}>Add Times</Text>
-          <Text style={styles.subtitle}>
-            Scan your bell schedule to add period times.
-          </Text>
-          {scanning ? (
-            <View style={styles.center}>
-              <ActivityIndicator color={Colors.primary} size="large" />
-            </View>
-          ) : (
-            <>
-              <View style={styles.scanRow}>
-                <PressableScale
-                  style={styles.scanButton}
-                  onPress={() => scanTimesPhoto(true)}
-                >
-                  <Text style={styles.scanButtonText}>📷 Take Photo</Text>
-                </PressableScale>
-                <PressableScale
-                  style={styles.scanButton}
-                  onPress={() => scanTimesPhoto(false)}
-                >
-                  <Text style={styles.scanButtonText}>🖼️ Upload</Text>
-                </PressableScale>
-              </View>
-              <PressableScale
-                style={styles.skipButton}
-                onPress={() => {
-                  setScannedResults(
-                    scannedClasses.map((c) => ({
-                      ...c,
-                      startTime: "",
-                      endTime: "",
-                    })),
-                  );
-                  setReviewing(true);
-                  setScanStep("idle");
-                }}
-              >
-                <Text style={styles.skipText}>Skip — add times manually</Text>
-              </PressableScale>
-            </>
-          )}
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <Text style={styles.header}>My Schedule</Text>
+          <Text style={styles.dateText}>{today}</Text>
         </View>
-      </Modal>
 
-      {/* REVIEW MODAL */}
-      <Modal
-        visible={reviewing}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.modal}>
-          <Text style={styles.modalTitle}>Review Details</Text>
-          <Text style={styles.subtitle}>
-            Check your classes and fix anything the AI got wrong.
-          </Text>
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={{ paddingBottom: 20 }}
-          >
-            {scannedResults.map((item, index) => (
-              <View key={index} style={styles.reviewCard}>
-                <View style={styles.reviewBadgeRow}>
-                  <View
-                    style={[
-                      styles.typeBadge,
-                      item.type === "club" && styles.typeBadgeClub,
-                    ]}
+        {/* Daily schedule picker banner */}
+        {profile?.schoolId && user?.uid && (
+          <DailySchedulePicker schoolId={profile.schoolId} userId={user.uid} />
+        )}
+
+        <FlatList
+          data={sortedClasses}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 20, paddingTop: 12 }}
+          renderItem={({ item }) => {
+            const { startTime, endTime } = getDisplayTimes(item);
+            const progress = getPeriodProgress(startTime, endTime, nowMinutes);
+            return (
+              <View style={styles.card}>
+                <View style={styles.emojiContainer}>
+                  <Text style={styles.emojiText}>{item.emoji || "📖"}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.className}>{item.name}</Text>
+                  <Text style={styles.classDetail}>
+                    Period {item.period} • {startTime || "--:--"} –{" "}
+                    {endTime || "--:--"}
+                  </Text>
+                  {item.teacher ? (
+                    <Text style={styles.classTeacher}>{item.teacher}</Text>
+                  ) : null}
+                  {progress ? (
+                    <View style={styles.periodProgressWrap}>
+                      <View style={styles.periodProgressTrack}>
+                        <View
+                          style={[
+                            styles.periodProgressFill,
+                            progress.variant === "active" &&
+                              styles.periodProgressFillActive,
+                            progress.variant === "past" &&
+                              styles.periodProgressFillPast,
+                            progress.variant === "upcoming" &&
+                              styles.periodProgressFillUpcoming,
+                            {
+                              width: `${Math.round(progress.progress * 100)}%`,
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text
+                        style={[
+                          styles.periodProgressLabel,
+                          progress.variant === "active" &&
+                            styles.periodProgressLabelActive,
+                          progress.variant === "past" &&
+                            styles.periodProgressLabelPast,
+                        ]}
+                      >
+                        {progress.label}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+            );
+          }}
+          ListEmptyComponent={
+            isWeekend ? (
+              <Text style={styles.empty}>Enjoy your weekend!</Text>
+            ) : (
+              <Text style={styles.empty}>
+                No classes yet. Tap Manage to add.
+              </Text>
+            )
+          }
+        />
+
+        <PressableScale
+          style={styles.manageButton}
+          onPress={() => setManaging(true)}
+        >
+          <Text style={styles.manageButtonText}>⚙️ Manage Schedule</Text>
+        </PressableScale>
+
+        {/* TIMES SCAN MODAL */}
+        <Modal
+          visible={scanStep === "times"}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <SafeAreaView style={styles.modal} edges={["top", "bottom"]}>
+            <Text style={styles.modalTitle}>Add Times</Text>
+            <Text style={styles.subtitle}>
+              Scan your bell schedule to add period times.
+            </Text>
+            {scanning ? (
+              <View style={styles.center}>
+                <ActivityIndicator color={Colors.primary} size="large" />
+              </View>
+            ) : (
+              <>
+                <View style={styles.scanRow}>
+                  <PressableScale
+                    style={styles.scanButton}
+                    onPress={() => scanTimesPhoto(true)}
                   >
-                    <Text style={styles.typeBadgeText}>
-                      {item.type === "club" ? "Club" : "Class"}
+                    <Text style={styles.scanButtonText}>📷 Take Photo</Text>
+                  </PressableScale>
+                  <PressableScale
+                    style={styles.scanButton}
+                    onPress={() => scanTimesPhoto(false)}
+                  >
+                    <Text style={styles.scanButtonText}>🖼️ Upload</Text>
+                  </PressableScale>
+                </View>
+                <PressableScale
+                  style={styles.skipButton}
+                  onPress={() => {
+                    setScannedResults(
+                      scannedClasses.map((c) => ({
+                        ...c,
+                        startTime: "",
+                        endTime: "",
+                      })),
+                    );
+                    setReviewing(true);
+                    setScanStep("idle");
+                  }}
+                >
+                  <Text style={styles.skipText}>Skip — add times manually</Text>
+                </PressableScale>
+              </>
+            )}
+          </SafeAreaView>
+        </Modal>
+
+        {/* REVIEW MODAL */}
+        <Modal
+          visible={reviewing}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <SafeAreaView style={styles.modal} edges={["top", "bottom"]}>
+            <Text style={styles.modalTitle}>Review Details</Text>
+            <Text style={styles.subtitle}>
+              Check your classes and fix anything the AI got wrong.
+            </Text>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            >
+              {scannedResults.map((item, index) => (
+                <View key={index} style={styles.reviewCard}>
+                  <View style={styles.reviewBadgeRow}>
+                    <View
+                      style={[
+                        styles.typeBadge,
+                        item.type === "club" && styles.typeBadgeClub,
+                      ]}
+                    >
+                      <Text style={styles.typeBadgeText}>
+                        {item.type === "club" ? "Club" : "Class"}
+                      </Text>
+                    </View>
+                    <PressableScale
+                      onPress={() =>
+                        updateScannedField(
+                          index,
+                          "type",
+                          item.type === "club" ? "class" : "club",
+                        )
+                      }
+                    >
+                      <Text style={styles.switchTypeText}>Switch</Text>
+                    </PressableScale>
+                  </View>
+                  <View style={styles.reviewTop}>
+                    <Text style={styles.reviewEmoji}>{item.emoji}</Text>
+                    <TextInput
+                      style={styles.reviewInputBold}
+                      value={item.name}
+                      onChangeText={(v) => updateScannedField(index, "name", v)}
+                      placeholder="Class name"
+                      placeholderTextColor={Colors.muted}
+                    />
+                  </View>
+                  <TextInput
+                    style={styles.reviewInput}
+                    value={item.teacher}
+                    onChangeText={(v) =>
+                      updateScannedField(index, "teacher", v)
+                    }
+                    placeholder="Teacher name"
+                    placeholderTextColor={Colors.muted}
+                  />
+                  <TextInput
+                    style={styles.reviewInput}
+                    value={item.period}
+                    onChangeText={(v) => updateScannedField(index, "period", v)}
+                    placeholder="Period (e.g. 3rd)"
+                    placeholderTextColor={Colors.muted}
+                  />
+                  <View style={styles.timeRow}>
+                    <TextInput
+                      style={styles.timeInput}
+                      placeholder="Start"
+                      placeholderTextColor={Colors.muted}
+                      value={item.startTime}
+                      onChangeText={(v) =>
+                        updateScannedField(index, "startTime", v)
+                      }
+                    />
+                    <Text style={{ color: Colors.muted, alignSelf: "center" }}>
+                      –
                     </Text>
+                    <TextInput
+                      style={styles.timeInput}
+                      placeholder="End"
+                      placeholderTextColor={Colors.muted}
+                      value={item.endTime}
+                      onChangeText={(v) =>
+                        updateScannedField(index, "endTime", v)
+                      }
+                    />
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+            <PressableScale
+              style={styles.saveButton}
+              onPress={handleFinalSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.saveButtonText}>Confirm Schedule</Text>
+              )}
+            </PressableScale>
+            <PressableScale
+              onPress={() => setReviewing(false)}
+              style={{ marginTop: 16, alignItems: "center" }}
+            >
+              <Text style={{ color: Colors.muted }}>Cancel</Text>
+            </PressableScale>
+          </SafeAreaView>
+        </Modal>
+
+        {/* MANAGE MODAL */}
+        <Modal
+          visible={managing && scanStep === "idle" && !reviewing}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <SafeAreaView style={styles.modal} edges={["top", "bottom"]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Manage</Text>
+              <PressableScale onPress={() => setManaging(false)}>
+                <Text style={styles.modalClose}>Done</Text>
+              </PressableScale>
+            </View>
+            {scanning ? (
+              <View style={styles.center}>
+                <ActivityIndicator color={Colors.primary} size="large" />
+                <Text style={styles.scanningText}>Reading schedule...</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.sectionLabel}>Add to your schedule</Text>
+                <View style={styles.scanRow}>
+                  <PressableScale
+                    style={styles.scanButton}
+                    onPress={() => {
+                      setManaging(false);
+                      setScanOptionsVisible(true);
+                    }}
+                  >
+                    <Text style={styles.scanButtonText}>📷 Scan AI</Text>
+                  </PressableScale>
+                  <PressableScale
+                    style={[styles.scanButton, { borderColor: Colors.primary }]}
+                    onPress={() => setManualVisible(true)}
+                  >
+                    <Text
+                      style={[styles.scanButtonText, { color: Colors.primary }]}
+                    >
+                      ✍️ Manual
+                    </Text>
+                  </PressableScale>
+                </View>
+              </>
+            )}
+            <FlatList
+              data={classRooms}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <View style={styles.manageCard}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.manageName}>
+                      {item.emoji} {item.name}
+                    </Text>
+                    <Text style={styles.manageSub}>
+                      Period {item.period} • {item.startTime || "--:--"} –{" "}
+                      {item.endTime || "--:--"}
+                    </Text>
+                    {item.teacher ? (
+                      <Text style={styles.manageSub}>{item.teacher}</Text>
+                    ) : null}
                   </View>
                   <PressableScale
                     onPress={() =>
-                      updateScannedField(
-                        index,
-                        "type",
-                        item.type === "club" ? "class" : "club",
-                      )
+                      leaveClass(user!.uid, profile!.schoolId, item.id)
                     }
                   >
-                    <Text style={styles.switchTypeText}>Switch</Text>
+                    <Text style={{ color: "#FF4444", fontWeight: "600" }}>
+                      Remove
+                    </Text>
                   </PressableScale>
                 </View>
-                <View style={styles.reviewTop}>
-                  <Text style={styles.reviewEmoji}>{item.emoji}</Text>
-                  <TextInput
-                    style={styles.reviewInputBold}
-                    value={item.name}
-                    onChangeText={(v) => updateScannedField(index, "name", v)}
-                    placeholder="Class name"
-                    placeholderTextColor={Colors.muted}
-                  />
-                </View>
-                <TextInput
-                  style={styles.reviewInput}
-                  value={item.teacher}
-                  onChangeText={(v) => updateScannedField(index, "teacher", v)}
-                  placeholder="Teacher name"
-                  placeholderTextColor={Colors.muted}
-                />
-                <TextInput
-                  style={styles.reviewInput}
-                  value={item.period}
-                  onChangeText={(v) => updateScannedField(index, "period", v)}
-                  placeholder="Period (e.g. 3rd)"
-                  placeholderTextColor={Colors.muted}
-                />
-                <View style={styles.timeRow}>
-                  <TextInput
-                    style={styles.timeInput}
-                    placeholder="Start"
-                    placeholderTextColor={Colors.muted}
-                    value={item.startTime}
-                    onChangeText={(v) =>
-                      updateScannedField(index, "startTime", v)
-                    }
-                  />
-                  <Text style={{ color: Colors.muted, alignSelf: "center" }}>
-                    –
-                  </Text>
-                  <TextInput
-                    style={styles.timeInput}
-                    placeholder="End"
-                    placeholderTextColor={Colors.muted}
-                    value={item.endTime}
-                    onChangeText={(v) =>
-                      updateScannedField(index, "endTime", v)
-                    }
-                  />
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-          <PressableScale
-            style={styles.saveButton}
-            onPress={handleFinalSave}
-            disabled={saving}
-          >
-            {saving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.saveButtonText}>Confirm Schedule</Text>
-            )}
-          </PressableScale>
-          <PressableScale
-            onPress={() => setReviewing(false)}
-            style={{ marginTop: 16, alignItems: "center" }}
-          >
-            <Text style={{ color: Colors.muted }}>Cancel</Text>
-          </PressableScale>
-        </View>
-      </Modal>
+              )}
+            />
+          </SafeAreaView>
+        </Modal>
 
-      {/* MANAGE MODAL */}
-      <Modal
-        visible={managing && scanStep === "idle" && !reviewing}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.modal}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Manage</Text>
-            <PressableScale onPress={() => setManaging(false)}>
-              <Text style={styles.modalClose}>Done</Text>
-            </PressableScale>
-          </View>
-          {scanning ? (
-            <View style={styles.center}>
-              <ActivityIndicator color={Colors.primary} size="large" />
-              <Text style={styles.scanningText}>Reading schedule...</Text>
+        <ManualEntryModal
+          visible={manualVisible}
+          onClose={() => setManualVisible(false)}
+          onSave={handleManualSave}
+        />
+
+        {/* SCAN OPTIONS MODAL */}
+        <Modal
+          visible={scanOptionsVisible}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <SafeAreaView style={styles.modal} edges={["top", "bottom"]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Scan Schedule</Text>
+              <PressableScale
+                onPress={() => {
+                  setScanOptionsVisible(false);
+                  setManaging(true);
+                }}
+              >
+                <Text style={styles.modalClose}>Cancel</Text>
+              </PressableScale>
             </View>
-          ) : (
-            <>
-              <Text style={styles.sectionLabel}>Add to your schedule</Text>
-              <View style={styles.scanRow}>
-                <PressableScale
-                  style={styles.scanButton}
-                  onPress={() => {
-                    setManaging(false);
-                    setScanOptionsVisible(true);
-                  }}
-                >
-                  <Text style={styles.scanButtonText}>📷 Scan AI</Text>
-                </PressableScale>
-                <PressableScale
-                  style={[styles.scanButton, { borderColor: Colors.primary }]}
-                  onPress={() => setManualVisible(true)}
-                >
-                  <Text
-                    style={[styles.scanButtonText, { color: Colors.primary }]}
-                  >
-                    ✍️ Manual
-                  </Text>
-                </PressableScale>
-              </View>
-            </>
-          )}
-          <FlatList
-            data={classRooms}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View style={styles.manageCard}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.manageName}>
-                    {item.emoji} {item.name}
-                  </Text>
-                  <Text style={styles.manageSub}>
-                    Period {item.period} • {item.startTime || "--:--"} –{" "}
-                    {item.endTime || "--:--"}
-                  </Text>
-                  {item.teacher ? (
-                    <Text style={styles.manageSub}>{item.teacher}</Text>
-                  ) : null}
-                </View>
-                <PressableScale
-                  onPress={() =>
-                    leaveClass(user!.uid, profile!.schoolId, item.id)
-                  }
-                >
-                  <Text style={{ color: "#FF4444", fontWeight: "600" }}>
-                    Remove
-                  </Text>
-                </PressableScale>
-              </View>
-            )}
-          />
-        </View>
-      </Modal>
-
-      <ManualEntryModal
-        visible={manualVisible}
-        onClose={() => setManualVisible(false)}
-        onSave={handleManualSave}
-      />
-
-      {/* SCAN OPTIONS MODAL */}
-      <Modal
-        visible={scanOptionsVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.modal}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Scan Schedule</Text>
-            <PressableScale
-              onPress={() => {
-                setScanOptionsVisible(false);
-                setManaging(true);
-              }}
-            >
-              <Text style={styles.modalClose}>Cancel</Text>
-            </PressableScale>
-          </View>
-          <Text style={styles.subtitle}>
-            Choose an option to import your classes using AI.
-          </Text>
-          <View style={styles.scanRow}>
-            <PressableScale
-              style={styles.scanButton}
-              onPress={() => {
-                setScanOptionsVisible(false);
-                startScheduleScan(true);
-              }}
-            >
-              <Text style={styles.scanButtonText}>📷 Take Photo</Text>
-            </PressableScale>
-            <PressableScale
-              style={styles.scanButton}
-              onPress={() => {
-                setScanOptionsVisible(false);
-                startScheduleScan(false);
-              }}
-            >
-              <Text style={styles.scanButtonText}>🖼️ Photo Library</Text>
-            </PressableScale>
-          </View>
-        </View>
-      </Modal>
-    </View>
+            <Text style={styles.subtitle}>
+              Choose an option to import your classes using AI.
+            </Text>
+            <View style={styles.scanRow}>
+              <PressableScale
+                style={styles.scanButton}
+                onPress={() => {
+                  setScanOptionsVisible(false);
+                  startScheduleScan(true);
+                }}
+              >
+                <Text style={styles.scanButtonText}>📷 Take Photo</Text>
+              </PressableScale>
+              <PressableScale
+                style={styles.scanButton}
+                onPress={() => {
+                  setScanOptionsVisible(false);
+                  startScheduleScan(false);
+                }}
+              >
+                <Text style={styles.scanButtonText}>🖼️ Photo Library</Text>
+              </PressableScale>
+            </View>
+          </SafeAreaView>
+        </Modal>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background,
     padding: 20,
-    paddingTop: 40,
+    paddingTop: 0,
   },
   headerRow: {
     flexDirection: "row",
@@ -1143,6 +1385,43 @@ const styles = StyleSheet.create({
   },
   classDetail: { color: Colors.muted, fontSize: 13, fontWeight: "500" },
   classTeacher: { color: Colors.muted, fontSize: 12, marginTop: 2 },
+  periodProgressWrap: {
+    marginTop: 10,
+    gap: 6,
+  },
+  periodProgressTrack: {
+    width: "100%",
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: Colors.background,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  periodProgressFill: {
+    height: "100%",
+    borderRadius: 999,
+  },
+  periodProgressFillUpcoming: {
+    backgroundColor: Colors.background,
+  },
+  periodProgressFillActive: {
+    backgroundColor: Colors.primary,
+  },
+  periodProgressFillPast: {
+    backgroundColor: Colors.primary,
+  },
+  periodProgressLabel: {
+    color: Colors.muted,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  periodProgressLabelActive: {
+    color: Colors.primary,
+  },
+  periodProgressLabelPast: {
+    color: Colors.primary,
+  },
 
   manageButton: {
     backgroundColor: Colors.card,
@@ -1251,6 +1530,49 @@ const styles = StyleSheet.create({
   },
   countButtonText: { color: Colors.muted, fontWeight: "600" },
   countButtonTextActive: { color: "#fff" },
+  periodGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 16,
+  },
+  periodToggle: {
+    width: "31%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  periodToggleActive: {
+    backgroundColor: Colors.primary + "18",
+    borderColor: Colors.primary,
+  },
+  periodToggleText: { color: Colors.text, fontWeight: "700" },
+  periodToggleTextActive: { color: Colors.primary },
+  checkboxBox: {
+    width: 18,
+    height: 18,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.background,
+  },
+  checkboxBoxActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary,
+  },
+  checkboxDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#fff",
+  },
   periodRow: {
     flexDirection: "row",
     alignItems: "center",

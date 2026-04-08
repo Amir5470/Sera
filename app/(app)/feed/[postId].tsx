@@ -1,14 +1,23 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useMemo, useState } from "react";
 import {
-    PressableScale,
-    SlideUpView,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  PressableScale,
+  SlideUpView,
 } from "../../../components/animated-helpers";
 import { Colors } from "../../../constants/colors";
 import { useAuth } from "../../../hooks/useAuth";
 import { useFeed } from "../../../hooks/useFeed";
 import { useProfile } from "../../../hooks/useProfile";
+import { useReplies } from "../../../hooks/useReplies";
+import { addReply } from "../../../lib/posts";
 
 export default function PostDetailScreen() {
   const router = useRouter();
@@ -21,6 +30,21 @@ export default function PostDetailScreen() {
     () => posts.find((item) => item.id === postId),
     [posts, postId],
   );
+
+  const { replies } = useReplies(profile?.schoolId, postId as string);
+  const [replyText, setReplyText] = useState("");
+
+  const submitReply = async () => {
+    if (!replyText.trim() || !profile?.schoolId || !user) return;
+    await addReply(
+      profile.schoolId,
+      postId as string,
+      replyText.trim(),
+      profile.displayName || "Student",
+      user.uid,
+    );
+    setReplyText("");
+  };
 
   if (loading) {
     return (
@@ -43,21 +67,58 @@ export default function PostDetailScreen() {
 
   return (
     <SlideUpView style={styles.container}>
-      <View style={styles.headerRow}>
-        <Text style={styles.headerText}>Post</Text>
-      </View>
-      <View style={styles.card}>
-        <View style={styles.postHeader}>
-          <Text style={styles.author}>{post.authorName}</Text>
-          <Text style={styles.time}>
-            {new Date(post.createdAt).toLocaleString()}
-          </Text>
+      <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1 }}>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerText}>Post</Text>
         </View>
-        <Text style={styles.postText}>{post.text}</Text>
-      </View>
-      <PressableScale style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backText}>Back</Text>
-      </PressableScale>
+        <View style={styles.card}>
+          <View style={styles.postHeader}>
+            <Text style={styles.author}>{post.authorName}</Text>
+            <Text style={styles.time}>
+              {new Date(post.createdAt).toLocaleString()}
+            </Text>
+          </View>
+          <Text style={styles.postText}>{post.text}</Text>
+        </View>
+
+        {/* Replies */}
+        <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
+          {replies.map((r) => (
+            <View key={r.id} style={styles.reply}>
+              <Text style={styles.replyAuthor}>{r.authorName}</Text>
+              <Text style={styles.replyText}>{r.text}</Text>
+              <Text style={styles.replyTime}>
+                {new Date(r.createdAt).toLocaleTimeString()}
+              </Text>
+            </View>
+          ))}
+
+          <View style={styles.replyComposer}>
+            <TextInput
+              style={styles.replyInput}
+              placeholder="Write a reply..."
+              placeholderTextColor={Colors.muted}
+              value={replyText}
+              onChangeText={setReplyText}
+              multiline
+            />
+            <PressableScale
+              style={[
+                styles.replyButton,
+                !replyText.trim() && styles.replyButtonDisabled,
+              ]}
+              onPress={submitReply}
+              disabled={!replyText.trim()}
+            >
+              <Text style={styles.replyButtonText}>↑</Text>
+            </PressableScale>
+          </View>
+        </View>
+
+        <PressableScale style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backText}>Back</Text>
+        </PressableScale>
+      </SafeAreaView>
     </SlideUpView>
   );
 }
@@ -112,4 +173,41 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   backText: { color: Colors.text, fontWeight: "700" },
+  reply: {
+    borderRadius: 12,
+    backgroundColor: Colors.background,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 4,
+  },
+  replyAuthor: { color: Colors.primary, fontWeight: "600" },
+  replyText: { color: Colors.text, fontSize: 14 },
+  replyTime: { color: Colors.muted, fontSize: 12 },
+  replyComposer: {
+    marginTop: 10,
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "flex-end",
+  },
+  replyInput: {
+    flex: 1,
+    minHeight: 40,
+    color: Colors.text,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: 10,
+  },
+  replyButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  replyButtonDisabled: { opacity: 0.5 },
+  replyButtonText: { color: "#fff", fontSize: 18, fontWeight: "700" },
 });

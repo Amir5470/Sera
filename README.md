@@ -82,7 +82,7 @@ Sera is designed to stay compliant with student data policies, which governs tec
 
 ---s
 
-#Roadmap
+## Roadmap
 
 ---
 
@@ -104,8 +104,8 @@ _Built and verified features._
 
 _Focusing on security, compliance, and user experience._
 
-- [x] **Hardened Age Verification:** Implement a persistent block/lockout for users under 13 to prevent easy "birthday switching" during onboarding.
-- [ ] **Push Notifications:** Alert users for new Class Room messages or School Feed updates using Firebase Cloud Messaging (FCM).
+- [x] **Hardened Age Verification:** Implement a persistent lockout for users under 13 to prevent easy "birthday switching" during onboarding.
+- [ ] **Push Notifications:** Alert users for new Class Room messages, School Feed,or Schedule updates using Firebase Cloud Messaging (FCM).
 - [x] **Data Privacy & Legal:** Finalize Privacy Policy and Terms of Service (required for App Store & Play Store approval).
 - [ ] **Profile Customization:** Allow users to personalize accounts with avatars, bios, and school-specific flair.
 
@@ -127,9 +127,9 @@ _Testing in the wild and gathering student feedback._
 _Long-term growth and advanced features._
 
 - [ ] **Public Launch:** Official release on the Apple App Store and Google Play Store.
-- [ ] **Cross-Platform Mirroring:** Optimization for users on both iPhone/Android and macOS Sequoia mirroring.
+- [ ] **Cross-Platform Managing:** Optimization for users on both iPhone/Android.
 - [ ] **Collaborative Study Tools:** Shared notes and group task lists within Class Rooms.
-- [ ] **Sustainability:** Explore non-intrusive monetization (e.g., premium themes or club-specific features).
+- [ ] **Sustainability:** Explore non-intrusive monetization (e.g., premium themes or freemium features).
 
 ---
 

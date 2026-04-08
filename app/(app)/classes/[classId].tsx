@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -18,6 +19,7 @@ import { useAuth } from "../../../hooks/useAuth";
 import { useClassChat } from "../../../hooks/useClassChat";
 import { useProfile } from "../../../hooks/useProfile";
 import { sendMessage } from "../../../lib/chat";
+import { sanitizeText } from "../../../lib/inputSanitizer";
 export default function ClassRoom() {
   const { classId, name, schoolId } = useLocalSearchParams<{
     classId: string;
@@ -37,6 +39,14 @@ export default function ClassRoom() {
   const submit = async () => {
     if (!text.trim() || !user || !resolvedSchoolId || !classId) return;
 
+    let cleaned: string;
+    try {
+      cleaned = sanitizeText(text, 1000);
+    } catch (e: any) {
+      Alert.alert("Invalid message", e.message || "Message not allowed.");
+      return;
+    }
+
     const senderName = profile?.displayName || user.displayName || "Student";
 
     setSending(true);
@@ -45,7 +55,7 @@ export default function ClassRoom() {
         resolvedSchoolId,
         classId,
         false, // isClub = false
-        text.trim(),
+        cleaned,
         senderName,
         user.uid,
       );

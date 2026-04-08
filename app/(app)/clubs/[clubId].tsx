@@ -21,6 +21,7 @@ import { useClassChat } from "../../../hooks/useClassChat";
 import { useProfile } from "../../../hooks/useProfile";
 import { sendMessage } from "../../../lib/chat";
 import { db } from "../../../lib/firebase";
+import { sanitizeText } from "../../../lib/inputSanitizer";
 
 const { width } = Dimensions.get("window");
 
@@ -78,13 +79,21 @@ export default function ClubRoom() {
 
     const senderName = profile?.displayName || user.displayName || "Student";
 
+    let cleaned: string;
+    try {
+      cleaned = sanitizeText(text, 1000);
+    } catch (e: any) {
+      Alert.alert("Invalid message", e.message || "Message not allowed.");
+      return;
+    }
+
     setSending(true);
     try {
       await sendMessage(
         resolvedSchoolId,
         clubId,
         true, // isClub = true
-        text.trim(),
+        cleaned,
         senderName,
         user.uid,
       );

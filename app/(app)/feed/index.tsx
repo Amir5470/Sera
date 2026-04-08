@@ -5,7 +5,7 @@ import { useFeed } from "@/hooks/useFeed";
 import { useProfile } from "@/hooks/useProfile";
 import { useReplies } from "@/hooks/useReplies";
 import { successNotification } from "@/lib/haptics";
-import { addReply, createPost, deletePost } from "@/lib/posts";
+import { addReply, createPost, deletePost, reportPost } from "@/lib/posts";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -13,7 +13,9 @@ import {
   Alert,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -34,16 +36,58 @@ function PostCard({ post, schoolId, userId, displayName }: PostCardProps) {
   const [sending, setSending] = useState(false);
   const { replies } = useReplies(expanded ? schoolId : undefined, post.id);
   const isAuthor = post.authorId === userId;
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const handleDelete = () => {
-    Alert.alert("Delete Post", "Are you sure?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => deletePost(schoolId, post.id),
-      },
-    ]);
+  const handleDelete = async () => {
+    try {
+      await deletePost(schoolId, post.id);
+      successNotification();
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Could not delete post.");
+    }
+  };
+
+  const handleReport = async () => {
+    try {
+      const res = await reportPost(schoolId, post.id, userId, post.text);
+      if (res.deleted) {
+        Alert.alert(
+          "Post removed",
+          res.reason === "ai"
+            ? "Removed by moderation."
+            : "Removed after reports.",
+        );
+      } else {
+        Alert.alert("Thanks", "Your report was submitted.");
+      }
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Failed to report post.");
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      // Prefer web clipboard when available
+      if (
+        typeof navigator !== "undefined" &&
+        (navigator as any).clipboard?.writeText
+      ) {
+        await (navigator as any).clipboard.writeText(post.text || "");
+        Alert.alert("Copied", "Post text copied to clipboard.");
+        return;
+      }
+
+      // Native fallback: show the post text so user can copy manually
+      Alert.alert("Copy Post", post.text || "");
+    } catch (e) {
+      Alert.alert("Error", "Could not copy text.");
+    }
+  };
+
+  const openPostMenu = () => {
+    setConfirmDelete(false);
+    setMenuVisible(true);
   };
 
   const submitReply = async () => {
@@ -67,13 +111,114 @@ function PostCard({ post, schoolId, userId, displayName }: PostCardProps) {
       <View style={styles.postHeader}>
         <Text style={styles.author}>{post.authorName}</Text>
         <View style={styles.postActions}>
-          {isAuthor && (
-            <PressableScale style={styles.deleteButton} onPress={handleDelete}>
-              <Text style={styles.deleteText}>Delete</Text>
-            </PressableScale>
-          )}
+          <PressableScale style={styles.menuButton} onPress={openPostMenu}>
+            <Text style={styles.menuButtonText}>⋯</Text>
+          </PressableScale>
         </View>
       </View>
+
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setMenuVisible(false)}
+        >
+          <Pressable style={styles.menuContainer} onPress={() => {}}>
+            {!confirmDelete ? (
+              <>
+                <Text style={styles.menuTitle}>Post</Text>
+                <Text
+                  style={styles.menuText}
+                  numberOfLines={4}
+                  ellipsizeMode="tail"
+                >
+                  {post.text}
+                </Text>
+
+                <View style={styles.menuActions}>
+                  <PressableScale
+                    style={styles.menuActionButton}
+                    onPress={async () => {
+                      await handleCopy();
+                      setMenuVisible(false);
+                    }}
+                  >
+                    <Text style={styles.menuActionText}>Copy</Text>
+                  </PressableScale>
+
+                  <PressableScale
+                    style={styles.menuActionButton}
+                    onPress={async () => {
+                      await handleReport();
+                      setMenuVisible(false);
+                    }}
+                  >
+                    <Text style={styles.menuActionText}>Report</Text>
+                  </PressableScale>
+
+                  {isAuthor && (
+                    <PressableScale
+                      style={[styles.menuActionButton, styles.menuDestructive]}
+                      onPress={() => setConfirmDelete(true)}
+                    >
+                      <Text
+                        style={[
+                          styles.menuActionText,
+                          styles.menuDestructiveText,
+                        ]}
+                      >
+                        Delete
+                      </Text>
+                    </PressableScale>
+                  )}
+                </View>
+
+                <PressableScale
+                  style={[styles.menuActionButton, styles.menuClose]}
+                  onPress={() => setMenuVisible(false)}
+                >
+                  <Text style={styles.menuActionText}>Cancel</Text>
+                </PressableScale>
+              </>
+            ) : (
+              <>
+                <Text style={styles.menuTitle}>Confirm Delete</Text>
+                <Text style={styles.menuText}>
+                  This will permanently delete the post.
+                </Text>
+                <View style={styles.menuActions}>
+                  <PressableScale
+                    style={[styles.menuActionButton, styles.menuClose]}
+                    onPress={() => setConfirmDelete(false)}
+                  >
+                    <Text style={styles.menuActionText}>Cancel</Text>
+                  </PressableScale>
+                  <PressableScale
+                    style={[styles.menuActionButton, styles.menuDestructive]}
+                    onPress={async () => {
+                      await handleDelete();
+                      setMenuVisible(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.menuActionText,
+                        styles.menuDestructiveText,
+                      ]}
+                    >
+                      Delete
+                    </Text>
+                  </PressableScale>
+                </View>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Text style={styles.postText}>{post.text}</Text>
 
@@ -247,6 +392,53 @@ const styles = StyleSheet.create({
   postActions: { flexDirection: "row", gap: 8 },
   deleteButton: { paddingHorizontal: 8, paddingVertical: 4 },
   deleteText: { color: "rgba(255,80,80,0.8)", fontSize: 12 },
+  menuButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "transparent",
+  },
+  menuButtonText: { color: Colors.primary, fontSize: 22, fontWeight: "700" },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  menuContainer: {
+    backgroundColor: Colors.card,
+    padding: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  menuTitle: {
+    color: Colors.primary,
+    fontSize: 18,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  menuText: {
+    color: Colors.text,
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: "center",
+  },
+  menuActions: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 16,
+  },
+  menuActionButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    backgroundColor: Colors.background,
+    minWidth: 90,
+    alignItems: "center",
+  },
+  menuActionText: { color: Colors.text, fontWeight: "700" },
+  menuDestructive: { backgroundColor: Colors.card },
+  menuDestructiveText: { color: "rgba(255,80,80,0.95)" },
+  menuClose: { marginTop: 12, backgroundColor: Colors.background },
   postText: { color: Colors.text, fontSize: 15, lineHeight: 21 },
   postFooter: {
     flexDirection: "row",
