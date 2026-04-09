@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Dimensions, StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
@@ -6,11 +6,12 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { Colors } from "../constants/colors";
+import { useTheme } from "../hooks/useTheme";
 
 const { width } = Dimensions.get("window");
 
 export default function Splash() {
+  const { theme } = useTheme();
   // 1. Start HUGE so the orange of the logo fills the entire screen
   const scale = useSharedValue(100);
   const opacity = useSharedValue(0);
@@ -26,35 +27,36 @@ export default function Splash() {
     });
 
     return;
-  }, []);
+  }, [opacity, scale]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
     opacity: opacity.value,
   }));
+  const localStyles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: theme === "light" ? "#FFFFFF" : "#0D0A1A",
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        logo: {
+          width: width * 0.6,
+          height: width * 0.6,
+        },
+      }),
+    [theme],
+  );
 
   return (
-    <View style={styles.container}>
+    <View style={localStyles.container}>
       <Animated.Image
         source={require("../assets/images/Sera-Logo-Transparent-Wtext.png")}
-        style={[styles.logo, animatedStyle]}
+        style={[localStyles.logo, animatedStyle]}
         resizeMode="contain"
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    // Ensure this background matches the "orange" or the dark theme of your app
-    backgroundColor: Colors.background,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  logo: {
-    // Make the base size reasonable, the 'scale' shared value handles the "bigness"
-    width: width * 0.6,
-    height: width * 0.6,
-  },
-});

@@ -58,6 +58,13 @@ export const useBellSchedules = (schoolId: string | undefined) => {
   const activeSchedule =
     schedules.find((s) => s.id === activeScheduleId) ?? null;
 
+  // Default schedule: prefer a template named 'Regular' (case-insensitive),
+  // otherwise fall back to the first template if available. This is used by
+  // screens (calendar/schedule) as the baseline schedule for days that have
+  // not been overridden by a daily vote/override document.
+  const defaultSchedule =
+    schedules.find((s) => /^regular/i.test(s.name)) ?? schedules[0] ?? null;
+
   // Vote count per schedule
   const voteCounts: Record<string, number> = {};
   for (const sid of Object.values(votes)) {
@@ -67,6 +74,7 @@ export const useBellSchedules = (schoolId: string | undefined) => {
   return {
     schedules,
     activeSchedule,
+    defaultSchedule,
     activeScheduleId,
     votes,
     voteCounts,

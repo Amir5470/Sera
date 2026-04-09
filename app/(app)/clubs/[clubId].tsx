@@ -1,9 +1,12 @@
 import { useHeaderHeight } from "@react-navigation/elements";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   FlatList,
   KeyboardAvoidingView,
@@ -20,7 +23,9 @@ import { useAuth } from "../../../hooks/useAuth";
 import { useClassChat } from "../../../hooks/useClassChat";
 import { useProfile } from "../../../hooks/useProfile";
 import { sendMessage } from "../../../lib/chat";
+import { uploadImageToCloudinary } from "../../../lib/cloudinary";
 import { db } from "../../../lib/firebase";
+import safeOnSnapshot from "../../../lib/firestoreHelpers";
 import { sanitizeText } from "../../../lib/inputSanitizer";
 
 const { width } = Dimensions.get("window");
@@ -46,6 +51,8 @@ export default function ClubRoom() {
 
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [attachmentLocal, setAttachmentLocal] = useState<string | null>(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const listRef = useRef<FlatList>(null);
   const headerHeight = useHeaderHeight();
 
@@ -63,19 +70,28 @@ export default function ClubRoom() {
       user.uid,
     );
 
-    const unsub = onSnapshot(memberRef, (docSnap) => {
-      if (!docSnap.exists()) {
-        // User is no longer a member, redirect to clubs list
+    const unsub = safeOnSnapshot(
+      memberRef,
+      (docSnap) => {
+        if (!docSnap.exists()) {
+          // User is no longer a member, redirect to clubs list
+          router.replace("/(app)/clubs" as any);
+        }
+      },
+      (err) => {
+        console.error("club member snapshot error:", err);
+        // If permission denied, kick user back to clubs list as a safe fallback
         router.replace("/(app)/clubs" as any);
-      }
-    });
+      },
+    );
 
     return unsub;
   }, [user?.uid, resolvedSchoolId, clubId]);
 
   // 3. Submit Message Logic
   const submit = async () => {
-    if (!text.trim() || !user || !resolvedSchoolId || !clubId) return;
+    if (!text.trim() && !attachmentLocal) return;
+    if (!user || !resolvedSchoolId || !clubId) return;
 
     const senderName = profile?.displayName || user.displayName || "Student";
 
@@ -89,6 +105,18 @@ export default function ClubRoom() {
 
     setSending(true);
     try {
+      let uploadedUrl: string | undefined;
+      if (attachmentLocal) {
+        setUploadingAttachment(true);
+        try {
+          uploadedUrl = await uploadImageToCloudinary(attachmentLocal);
+        } catch (e) {
+          console.warn("Attachment upload failed", e);
+          Alert.alert("Upload failed", "Could not upload attachment.");
+        } finally {
+          setUploadingAttachment(false);
+        }
+      }
       await sendMessage(
         resolvedSchoolId,
         clubId,
@@ -96,14 +124,41 @@ export default function ClubRoom() {
         cleaned,
         senderName,
         user.uid,
+        uploadedUrl,
       );
       setText("");
+      setAttachmentLocal(null);
       // Small timeout to allow the keyboard/list to adjust before scrolling
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (e) {
       console.error("Send failed:", e);
     } finally {
       setSending(false);
+    }
+  };
+
+  const pickAttachment = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert(
+          "Permission required",
+          "Allow access to photos to add an attachment.",
+        );
+        return;
+      }
+      const mediaTypes = (ImagePicker as any).MediaType?.Images;
+      const pickerOptions: any = { quality: 0.8, allowsEditing: true };
+      if (mediaTypes) pickerOptions.mediaTypes = mediaTypes;
+      const res = await ImagePicker.launchImageLibraryAsync(pickerOptions);
+      // support both shapes
+      // @ts-expect-error
+      const localUri = res?.uri ?? res?.assets?.[0]?.uri;
+      // @ts-expect-error
+      const cancelled = res?.cancelled ?? res?.canceled ?? false;
+      if (!cancelled && localUri) setAttachmentLocal(localUri as string);
+    } catch (e) {
+      console.warn("Picker error", e);
     }
   };
 
@@ -157,6 +212,18 @@ export default function ClubRoom() {
                   {!isMe && (
                     <Text style={clubstyles.author}>{item.authorName}</Text>
                   )}
+                  {item.imageUrl ? (
+                    <Image
+                      source={{ uri: item.imageUrl }}
+                      style={{
+                        width: Math.min(320, width - 80),
+                        height: 160,
+                        borderRadius: 8,
+                        marginBottom: 8,
+                      }}
+                      resizeMode="cover"
+                    />
+                  ) : null}
                   <Text style={clubstyles.messageText}>{item.text}</Text>
                   <Text
                     style={[
@@ -183,6 +250,33 @@ export default function ClubRoom() {
           />
         )}
 
+        {/* Attachment preview (rendered above composer to avoid layout squeeze) */}
+        {attachmentLocal ? (
+          <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
+              <Image
+                source={{ uri: attachmentLocal }}
+                style={{ width: 120, height: 72, borderRadius: 8 }}
+              />
+              <View style={{ flex: 1 }}>
+                <Pressable
+                  onPress={() => setAttachmentLocal(null)}
+                  style={{
+                    padding: 8,
+                    backgroundColor: Colors.background,
+                    borderRadius: 8,
+                  }}
+                >
+                  <Text style={{ color: Colors.text, fontWeight: "700" }}>
+                    Remove
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        ) : null}
         {/* COMPOSER */}
         <View style={clubstyles.composer}>
           <TextInput
@@ -193,20 +287,35 @@ export default function ClubRoom() {
             onChangeText={setText}
             multiline
           />
-          <Pressable
-            style={[
-              clubstyles.sendButton,
-              (!text.trim() || sending) && clubstyles.sendButtonDisabled,
-            ]}
-            onPress={submit}
-            disabled={!text.trim() || sending}
-          >
-            {sending ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text style={clubstyles.sendButtonText}>Send</Text>
-            )}
-          </Pressable>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Pressable
+              onPress={pickAttachment}
+              style={{
+                padding: 10,
+                borderRadius: 8,
+                backgroundColor: Colors.background,
+              }}
+            >
+              <Text style={{ color: Colors.primary, fontWeight: "700" }}>
+                Attach
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                clubstyles.sendButton,
+                ((!text.trim() && !attachmentLocal) || sending) &&
+                  clubstyles.sendButtonDisabled,
+              ]}
+              onPress={submit}
+              disabled={(!text.trim() && !attachmentLocal) || sending}
+            >
+              {sending ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={clubstyles.sendButtonText}>Send</Text>
+              )}
+            </Pressable>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -4,9 +4,21 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  setDoc,
 } from "firebase/firestore";
+import {
+  CalendarEventInput,
+  removeSharedEventFromPost,
+  saveSharedEventFromPost,
+} from "./calendarEvents";
 import { db } from "./firebase";
+import { sanitizeText } from "./inputSanitizer";
 import { moderateText } from "./moderation";
+
+export type SharedEventPayload = CalendarEventInput;
+
+const DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^\d{1,2}:\d{2}\s?(AM|PM|am|pm)?$/;
 
 export const createPost = async (
   schoolId: string,
@@ -34,6 +46,98 @@ export const createPost = async (
 
   // Return created id for caller
   return { id: ref.id };
+};
+
+export const createEventPost = async (
+  schoolId: string,
+  event: SharedEventPayload,
+  authorName: string,
+  authorId: string,
+  text?: string,
+  imageUrl?: string,
+) => {
+  if (!DATE_KEY_RE.test(event.dateKey)) {
+    throw new Error("Use date format YYYY-MM-DD.");
+  }
+  if (!TIME_RE.test(event.startTime) || !TIME_RE.test(event.endTime)) {
+    throw new Error("Use time format like 3:30 PM.");
+  }
+
+  const cleanEvent: SharedEventPayload = {
+    name: sanitizeText(event.name, 120),
+    dateKey: event.dateKey,
+    startTime: sanitizeText(event.startTime, 20),
+    endTime: sanitizeText(event.endTime, 20),
+    details: event.details ? sanitizeText(event.details, 400) : "",
+  };
+  const cleanText = text ? sanitizeText(text, 500) : "";
+
+  const moderationText = `${cleanText}\n${cleanEvent.name}\n${cleanEvent.details || ""}`;
+
+  try {
+    const res = await moderateText(moderationText);
+    if (!res.safe) {
+      throw new Error("Content not allowed: " + (res.reason || "unsafe"));
+    }
+  } catch (e) {
+    // Do not block users if moderation API is unavailable.
+  }
+
+  const docData: any = {
+    text: cleanText,
+    authorName,
+    authorId,
+    type: "event",
+    event: cleanEvent,
+    createdAt: Date.now(),
+  };
+  if (imageUrl) docData.imageUrl = imageUrl;
+
+  const ref = await addDoc(
+    collection(db, "schools", schoolId, "posts"),
+    docData,
+  );
+
+  return { id: ref.id };
+};
+
+export const respondToEventInvite = async (
+  schoolId: string,
+  postId: string,
+  userId: string,
+  event: SharedEventPayload,
+  status: "accepted" | "declined",
+) => {
+  const responseRef = doc(
+    db,
+    "schools",
+    schoolId,
+    "posts",
+    postId,
+    "responses",
+    userId,
+  );
+
+  await setDoc(
+    responseRef,
+    {
+      status,
+      respondedAt: Date.now(),
+    },
+    { merge: true },
+  );
+
+  if (status === "accepted") {
+    await saveSharedEventFromPost(userId, postId, event);
+  }
+  if (status === "declined") {
+    // Best-effort: remove any previously-saved event tied to this post
+    try {
+      await removeSharedEventFromPost(userId, postId);
+    } catch (e) {
+      // ignore errors; this is best-effort cleanup
+    }
+  }
 };
 
 export const deletePost = async (schoolId: string, postId: string) => {

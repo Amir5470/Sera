@@ -1,18 +1,18 @@
 import * as Haptics from "expo-haptics";
 import { useEffect, type ReactNode } from "react";
 import {
-    Pressable,
-    type PressableProps,
-    type StyleProp,
-    type ViewStyle,
+  Pressable,
+  type PressableProps,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import Reanimated, {
-    Easing,
-    interpolate,
-    SharedValue,
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming,
+  Easing,
+  interpolate,
+  SharedValue,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 
 const AnimatedPressable = Reanimated.createAnimatedComponent(Pressable);
@@ -38,6 +38,8 @@ export function usePressScale() {
       easing: Easing.out(Easing.quad),
     }),
     elevation: pressed.value ? 6 : 1,
+    // Provide boxShadow string for web (react-native-web deprecates shadow* props)
+    boxShadow: `0px ${pressed.value ? 8 : 2}px ${pressed.value ? 16 : 4}px rgba(0,0,0,${pressed.value ? 0.18 : 0})`,
   }));
 
   const onPressIn = () => {

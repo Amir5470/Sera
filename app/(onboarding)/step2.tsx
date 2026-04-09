@@ -126,7 +126,7 @@ export default function Step2() {
         <View style={styles.dot} />
       </View>
 
-      <Text style={styles.title}>When's your birthday?</Text>
+      <Text style={styles.title}>When&apos;s your birthday?</Text>
       <Text style={styles.subtitle}>
         We need this to verify your age for legal and safety reasons.
       </Text>

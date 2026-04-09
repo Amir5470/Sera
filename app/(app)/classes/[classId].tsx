@@ -1,4 +1,6 @@
 import { useHeaderHeight } from "@react-navigation/elements";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
@@ -19,6 +21,7 @@ import { useAuth } from "../../../hooks/useAuth";
 import { useClassChat } from "../../../hooks/useClassChat";
 import { useProfile } from "../../../hooks/useProfile";
 import { sendMessage } from "../../../lib/chat";
+import { uploadImageToCloudinary } from "../../../lib/cloudinary";
 import { sanitizeText } from "../../../lib/inputSanitizer";
 export default function ClassRoom() {
   const { classId, name, schoolId } = useLocalSearchParams<{
@@ -32,12 +35,15 @@ export default function ClassRoom() {
   const { messages, loading } = useClassChat(resolvedSchoolId, classId, false);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [attachmentLocal, setAttachmentLocal] = useState<string | null>(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const listRef = useRef<FlatList>(null);
   const headerHeight = useHeaderHeight();
   const router = useRouter();
 
   const submit = async () => {
-    if (!text.trim() || !user || !resolvedSchoolId || !classId) return;
+    if (!text.trim() && !attachmentLocal) return;
+    if (!user || !resolvedSchoolId || !classId) return;
 
     let cleaned: string;
     try {
@@ -51,6 +57,18 @@ export default function ClassRoom() {
 
     setSending(true);
     try {
+      let uploadedUrl: string | undefined;
+      if (attachmentLocal) {
+        setUploadingAttachment(true);
+        try {
+          uploadedUrl = await uploadImageToCloudinary(attachmentLocal);
+        } catch (e) {
+          console.warn("Attachment upload failed", e);
+          Alert.alert("Upload failed", "Could not upload attachment.");
+        } finally {
+          setUploadingAttachment(false);
+        }
+      }
       await sendMessage(
         resolvedSchoolId,
         classId,
@@ -58,14 +76,41 @@ export default function ClassRoom() {
         cleaned,
         senderName,
         user.uid,
+        uploadedUrl,
       );
       setText("");
+      setAttachmentLocal(null);
       // Small timeout to allow the keyboard/list to adjust before scrolling
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (e) {
       console.error("Send failed:", e);
     } finally {
       setSending(false);
+    }
+  };
+
+  const pickAttachment = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert(
+          "Permission required",
+          "Allow access to photos to add an attachment.",
+        );
+        return;
+      }
+      const mediaTypes = (ImagePicker as any).MediaType?.Images;
+      const pickerOptions: any = { quality: 0.8, allowsEditing: true };
+      if (mediaTypes) pickerOptions.mediaTypes = mediaTypes;
+      const res = await ImagePicker.launchImageLibraryAsync(pickerOptions);
+      // support both shapes
+      // @ts-expect-error
+      const localUri = res?.uri ?? res?.assets?.[0]?.uri;
+      // @ts-expect-error
+      const cancelled = res?.cancelled ?? res?.canceled ?? false;
+      if (!cancelled && localUri) setAttachmentLocal(localUri as string);
+    } catch (e) {
+      console.warn("Picker error", e);
     }
   };
 
@@ -113,6 +158,18 @@ export default function ClassRoom() {
                   {!isMe && (
                     <Text style={classstyles.author}>{item.authorName}</Text>
                   )}
+                  {item.imageUrl ? (
+                    <Image
+                      source={{ uri: item.imageUrl }}
+                      style={{
+                        width: 240,
+                        height: 140,
+                        borderRadius: 8,
+                        marginBottom: 8,
+                      }}
+                      resizeMode="cover"
+                    />
+                  ) : null}
                   <Text style={classstyles.messageText}>{item.text}</Text>
                   <Text
                     style={[
@@ -139,6 +196,32 @@ export default function ClassRoom() {
           />
         )}
 
+        {attachmentLocal ? (
+          <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
+              <Image
+                source={{ uri: attachmentLocal }}
+                style={{ width: 120, height: 72, borderRadius: 8 }}
+              />
+              <View style={{ flex: 1 }}>
+                <Pressable
+                  onPress={() => setAttachmentLocal(null)}
+                  style={{
+                    padding: 8,
+                    backgroundColor: Colors.background,
+                    borderRadius: 8,
+                  }}
+                >
+                  <Text style={{ color: Colors.text, fontWeight: "700" }}>
+                    Remove
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        ) : null}
         <View style={classstyles.composer}>
           <TextInput
             style={classstyles.input}
@@ -148,20 +231,35 @@ export default function ClassRoom() {
             onChangeText={setText}
             multiline
           />
-          <Pressable
-            style={[
-              classstyles.sendButton,
-              (!text.trim() || sending) && classstyles.sendButtonDisabled,
-            ]}
-            onPress={submit}
-            disabled={!text.trim() || sending}
-          >
-            {sending ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text style={classstyles.sendButtonText}>Send</Text>
-            )}
-          </Pressable>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Pressable
+              onPress={pickAttachment}
+              style={{
+                padding: 10,
+                borderRadius: 8,
+                backgroundColor: Colors.background,
+              }}
+            >
+              <Text style={{ color: Colors.primary, fontWeight: "700" }}>
+                Attach
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                classstyles.sendButton,
+                ((!text.trim() && !attachmentLocal) || sending) &&
+                  classstyles.sendButtonDisabled,
+              ]}
+              onPress={submit}
+              disabled={(!text.trim() && !attachmentLocal) || sending}
+            >
+              {sending ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={classstyles.sendButtonText}>Send</Text>
+              )}
+            </Pressable>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

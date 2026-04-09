@@ -1,11 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { DarkTheme, ThemeProvider } from "@react-navigation/native";
+import {
+  DarkTheme,
+  ThemeProvider as NavThemeProvider,
+} from "@react-navigation/native";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, View } from "react-native";
 import TourGuide from "../components/tour-guide";
 import { useAuth } from "../hooks/useAuth";
 import { useProfile } from "../hooks/useProfile";
+import { ThemeProvider as AppThemeProvider } from "../hooks/useTheme";
 import Splash from "./index";
 
 const SeraTheme = {
@@ -96,25 +100,27 @@ export default function RootLayout() {
   }, [user, authLoading, profile, profileLoading, segments, splashComplete]);
 
   return (
-    <ThemeProvider value={SeraTheme}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <View style={{ flex: 1, backgroundColor: "#0D0A1A" }}>
-          {!splashComplete || authLoading || profileLoading ? (
-            <Splash />
-          ) : (
-            <Slot />
-          )}
-          <TourGuide
-            visible={
-              showTour && !(!splashComplete || authLoading || profileLoading)
-            }
-            onClose={() => setShowTour(false)}
-          />
-        </View>
-      </KeyboardAvoidingView>
-    </ThemeProvider>
+    <NavThemeProvider value={SeraTheme}>
+      <AppThemeProvider>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <View style={{ flex: 1, backgroundColor: "#0D0A1A" }}>
+            {!splashComplete || authLoading || profileLoading ? (
+              <Splash />
+            ) : (
+              <Slot />
+            )}
+            <TourGuide
+              visible={
+                showTour && !(!splashComplete || authLoading || profileLoading)
+              }
+              onClose={() => setShowTour(false)}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </AppThemeProvider>
+    </NavThemeProvider>
   );
 }

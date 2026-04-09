@@ -14,10 +14,12 @@ import {
 } from "../../../components/animated-helpers";
 import { Colors } from "../../../constants/colors";
 import { useAuth } from "../../../hooks/useAuth";
+import { useEventInviteResponse } from "../../../hooks/useEventInviteResponse";
 import { useFeed } from "../../../hooks/useFeed";
 import { useProfile } from "../../../hooks/useProfile";
 import { useReplies } from "../../../hooks/useReplies";
-import { addReply } from "../../../lib/posts";
+import { successNotification } from "../../../lib/haptics";
+import { addReply, respondToEventInvite } from "../../../lib/posts";
 
 export default function PostDetailScreen() {
   const router = useRouter();
@@ -33,6 +35,13 @@ export default function PostDetailScreen() {
 
   const { replies } = useReplies(profile?.schoolId, postId as string);
   const [replyText, setReplyText] = useState("");
+  const [responding, setResponding] = useState(false);
+  const eventData = post?.type === "event" ? post.event : undefined;
+  const { status: inviteStatus } = useEventInviteResponse(
+    eventData ? profile?.schoolId : undefined,
+    eventData ? (postId as string) : undefined,
+    eventData ? user?.uid : undefined,
+  );
 
   const submitReply = async () => {
     if (!replyText.trim() || !profile?.schoolId || !user) return;
@@ -44,6 +53,23 @@ export default function PostDetailScreen() {
       user.uid,
     );
     setReplyText("");
+  };
+
+  const respond = async (status: "accepted" | "declined") => {
+    if (!eventData || !profile?.schoolId || !user?.uid) return;
+    setResponding(true);
+    try {
+      await respondToEventInvite(
+        profile.schoolId,
+        postId as string,
+        user.uid,
+        eventData,
+        status,
+      );
+      successNotification();
+    } finally {
+      setResponding(false);
+    }
   };
 
   if (loading) {
@@ -79,6 +105,45 @@ export default function PostDetailScreen() {
             </Text>
           </View>
           <Text style={styles.postText}>{post.text}</Text>
+
+          {eventData ? (
+            <View style={styles.eventCard}>
+              <Text style={styles.eventTitle}>{eventData.name}</Text>
+              <Text style={styles.eventMeta}>Date: {eventData.dateKey}</Text>
+              <Text style={styles.eventMeta}>
+                Time: {eventData.startTime} - {eventData.endTime}
+              </Text>
+              {eventData.details ? (
+                <Text style={styles.eventDetails}>{eventData.details}</Text>
+              ) : null}
+              {post.authorId !== user?.uid ? (
+                inviteStatus ? (
+                  <Text style={styles.eventStatus}>
+                    {inviteStatus === "accepted"
+                      ? "Accepted and added to your calendar"
+                      : "Declined"}
+                  </Text>
+                ) : (
+                  <View style={styles.eventActions}>
+                    <PressableScale
+                      style={[styles.eventButton, styles.eventButtonMuted]}
+                      onPress={() => respond("declined")}
+                      disabled={responding}
+                    >
+                      <Text style={styles.eventButtonText}>Decline</Text>
+                    </PressableScale>
+                    <PressableScale
+                      style={[styles.eventButton, styles.eventButtonPrimary]}
+                      onPress={() => respond("accepted")}
+                      disabled={responding}
+                    >
+                      <Text style={styles.eventButtonText}>Accept</Text>
+                    </PressableScale>
+                  </View>
+                )
+              ) : null}
+            </View>
+          ) : null}
         </View>
 
         {/* Replies */}
@@ -153,6 +218,34 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   postText: { color: Colors.text, fontSize: 16, lineHeight: 24 },
+  eventCard: {
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: "rgba(249,115,22,0.1)",
+    padding: 12,
+    gap: 4,
+  },
+  eventTitle: { color: Colors.text, fontSize: 16, fontWeight: "800" },
+  eventMeta: { color: Colors.muted, fontSize: 12 },
+  eventDetails: { color: Colors.text, fontSize: 13, lineHeight: 18 },
+  eventStatus: {
+    color: Colors.secondary,
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 6,
+  },
+  eventActions: { flexDirection: "row", gap: 8, marginTop: 8 },
+  eventButton: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  eventButtonPrimary: { backgroundColor: Colors.primary },
+  eventButtonMuted: { backgroundColor: Colors.background },
+  eventButtonText: { color: Colors.text, fontWeight: "700" },
   center: {
     flex: 1,
     justifyContent: "center",

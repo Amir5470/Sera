@@ -52,9 +52,9 @@ export default function Step1() {
         <View style={styles.dot} />
         <View style={styles.dot} />
       </View>
-      <Text style={styles.title}>What's your name?</Text>
+      <Text style={styles.title}>What&apos;s your name?</Text>
       <Text style={styles.subtitle}>
-        This is how you'll appear to your school.
+        This is how you&apos;ll appear to your school.
       </Text>
       <TextInput
         style={styles.input}

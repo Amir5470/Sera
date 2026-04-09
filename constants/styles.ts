@@ -41,6 +41,7 @@ export const classstyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
+    boxShadow: "0px 1px 4px rgba(0,0,0,0.05)",
     elevation: 1,
   },
   bubbleMe: {
@@ -147,6 +148,7 @@ export const clubstyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
+    boxShadow: "0px 1px 4px rgba(0,0,0,0.05)",
     elevation: 1,
   },
   bubbleMe: {

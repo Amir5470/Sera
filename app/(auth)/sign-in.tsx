@@ -2,7 +2,7 @@ import * as Google from "expo-auth-session/providers/google";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Image,
@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { Colors } from "../../constants/colors";
+import { useTheme } from "../../hooks/useTheme";
 import { signIn } from "../../lib/auth";
 import { auth } from "../../lib/firebase";
 
@@ -23,6 +24,71 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
+
+  const { theme } = useTheme();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: Colors.background2,
+          justifyContent: "center",
+          padding: 24,
+        },
+        logo: {
+          width: "100%",
+          height: 80,
+          marginBottom: 8,
+        },
+        tagline: {
+          color: Colors.muted,
+          textAlign: "center",
+          marginBottom: 40,
+        },
+        input: {
+          backgroundColor: Colors.card,
+          color: Colors.text,
+          padding: 16,
+          borderRadius: 12,
+          marginBottom: 12,
+          borderWidth: 1,
+          borderColor: Colors.border,
+        },
+        button: {
+          backgroundColor: Colors.primary,
+          padding: 16,
+          borderRadius: 12,
+          alignItems: "center",
+          marginTop: 8,
+        },
+        buttonText: {
+          color: Colors.text,
+          fontWeight: "bold",
+          fontSize: 16,
+        },
+        googleButton: {
+          backgroundColor: Colors.card,
+          padding: 16,
+          borderRadius: 12,
+          alignItems: "center",
+          marginTop: 12,
+          borderWidth: 1,
+          borderColor: Colors.border,
+        },
+        googleButtonText: {
+          color: Colors.text,
+          fontWeight: "bold",
+          fontSize: 16,
+        },
+        link: {
+          color: Colors.muted,
+          textAlign: "center",
+          marginTop: 20,
+        },
+      }),
+    [theme],
+  );
 
   // Google Auth
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -102,67 +168,12 @@ export default function SignIn() {
       )}
 
       <TouchableOpacity onPress={() => router.push("/(auth)/sign-up" as any)}>
-        <Text style={styles.link}>Don't have an account? Sign up</Text>
+        <Text style={styles.link}>Don&apos;t have an account? Sign up</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background2,
-    justifyContent: "center",
-    padding: 24,
-  },
-  logo: {
-    width: "100%",
-    height: 80,
-    marginBottom: 8,
-  },
-  tagline: {
-    color: Colors.muted,
-    textAlign: "center",
-    marginBottom: 40,
-  },
-  input: {
-    backgroundColor: Colors.card,
-    color: Colors.text,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  button: {
-    backgroundColor: Colors.primary,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  buttonText: {
-    color: Colors.text,
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  googleButton: {
-    backgroundColor: Colors.card,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  googleButtonText: {
-    color: Colors.text,
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  link: {
-    color: Colors.muted,
-    textAlign: "center",
-    marginTop: 20,
-  },
-});
+// Styles are created inside the component with `useMemo` so they update when
+// the active theme changes. The previous module-level `styles` export was
+// removed to avoid stale Colors values.

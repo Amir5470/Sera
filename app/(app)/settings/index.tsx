@@ -200,6 +200,13 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>App</Text>
         <View style={styles.card}>
           <SettingsItem
+            icon="color-palette-outline"
+            label="Appearance"
+            subtext="Light or dark mode"
+            onPress={() => router.push("/settings/appearance" as any)}
+          />
+          <View style={styles.divider} />
+          <SettingsItem
             icon="document-text-outline"
             label="Legal"
             onPress={() => router.push("/settings/tos-privacy" as any)}

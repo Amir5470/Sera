@@ -18,6 +18,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useBellSchedules } from "../../hooks/useBellSchedules";
 import { useClassRooms } from "../../hooks/useClassRooms";
 import { useProfile } from "../../hooks/useProfile";
+import { useTheme } from "../../hooks/useTheme";
 import { BellPeriod, voteForSchedule } from "../../lib/bellSchedules";
 import { joinOrCreateClass, leaveClass } from "../../lib/classes";
 import fetchWithLimit from "../../lib/fetchWithLimit";
@@ -85,11 +86,13 @@ const resolvePeriodWindow = (startTime?: string, endTime?: string) => {
     return { start, end };
   }
 
-  if (!hasMeridiem(startTime) && !hasMeridiem(endTime)) {
-    const adjustedEnd = end + 12 * 60;
-    if (adjustedEnd > start) {
-      return { start, end: adjustedEnd };
-    }
+  // If end is not after start, try interpreting end as the following hour
+  // (handles cases like "12:45" → "1:15" where end parses lower numerically).
+  // Use a best-effort +12h adjustment rather than requiring both times to omit
+  // meridiem markers — this resolves many school-schedule edge cases.
+  const adjustedEnd = end + 12 * 60;
+  if (adjustedEnd > start) {
+    return { start, end: adjustedEnd };
   }
 
   return null;
@@ -259,6 +262,8 @@ function NewBellScheduleModal({
     Record<string, { startTime: string; endTime: string }>
   >(createEmptyPeriodTimes);
   const [saving, setSaving] = useState(false);
+
+  const styles = useThemeStyles();
 
   const updatePeriod = (
     period: string,
@@ -444,6 +449,8 @@ function ManualEntryModal({
   const [type, setType] = useState<"class" | "club">("class");
   const [saving, setSaving] = useState(false);
 
+  const styles = useThemeStyles();
+
   const handleSave = async () => {
     if (!name || !period) {
       Alert.alert("Error", "Class name and Period are required.");
@@ -592,6 +599,8 @@ function DailySchedulePicker({
   const myVote = votes[userId];
   const totalVotes = Object.keys(votes).length;
 
+  const styles = useThemeStyles();
+
   const handleVote = async (scheduleId: string) => {
     setVoting(true);
     await voteForSchedule(schoolId, userId, scheduleId);
@@ -711,10 +720,13 @@ function DailySchedulePicker({
 // ─── Main Schedule Screen ────────────────────────────────────────────────────
 
 export default function Schedule() {
+  const styles = useThemeStyles();
   const { user } = useAuth();
   const { profile } = useProfile();
   const { classRooms } = useClassRooms(profile?.schoolId, user?.uid);
-  const { activeSchedule } = useBellSchedules(profile?.schoolId);
+  const { activeSchedule, defaultSchedule } = useBellSchedules(
+    profile?.schoolId,
+  );
 
   const [scanning, setScanning] = useState(false);
   const [scanStep, setScanStep] = useState<"idle" | "schedule" | "times">(
@@ -745,8 +757,9 @@ export default function Schedule() {
   // Merge today's bell schedule times into the class list for display
   const sortedClasses = useMemo(() => {
     if (!classRooms || isWeekend) return []; // Return empty on weekends
-    const activePeriods = activeSchedule
-      ? sortPeriods(activeSchedule.periods.map((period) => period.period))
+    const effectiveSchedule = activeSchedule ?? defaultSchedule;
+    const activePeriods = effectiveSchedule
+      ? sortPeriods(effectiveSchedule.periods.map((period) => period.period))
       : [];
     const activePeriodOrder = new Map(
       activePeriods.map((period, index) => [normalizePeriod(period), index]),
@@ -783,7 +796,7 @@ export default function Schedule() {
       if (activeSchedule && orderA !== orderB) return orderA - orderB;
       return getStart(a) - getStart(b);
     });
-  }, [classRooms, activeSchedule, isWeekend]);
+  }, [classRooms, activeSchedule, defaultSchedule, isWeekend]);
 
   const today = new Date().toLocaleDateString("en-US", {
     month: "short",
@@ -832,7 +845,7 @@ export default function Schedule() {
       const classes = await extractClasses(base64);
       setScannedClasses(classes);
       setScanStep("times");
-    } catch (e) {
+    } catch {
       Alert.alert("Error", "Could not read schedule.");
       setScanStep("idle");
       setManaging(true);
@@ -904,7 +917,7 @@ export default function Schedule() {
     try {
       await joinOrCreateClass(user.uid, profile.schoolId, cls);
       successNotification();
-    } catch (e) {
+    } catch {
       Alert.alert("Error", "Could not save class.");
     }
   };
@@ -1310,397 +1323,425 @@ export default function Schedule() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    padding: 20,
-    paddingTop: 0,
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "baseline",
-    marginBottom: 12,
-  },
-  header: { fontSize: 28, fontWeight: "900", color: Colors.text },
-  dateText: { fontSize: 18, color: Colors.primary, fontWeight: "700" },
+const useThemeStyles = () => {
+  const { theme } = useTheme();
+  return useMemo(
+    () =>
+      StyleSheet.create({
+        safeArea: {
+          flex: 1,
+          backgroundColor: theme === "light" ? "#FFFFFF" : Colors.background,
+        },
+        container: {
+          flex: 1,
+          backgroundColor: theme === "light" ? "#FFFFFF" : Colors.background,
+          padding: 20,
+          paddingTop: 0,
+        },
+        headerRow: {
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          marginBottom: 12,
+        },
+        header: {
+          fontSize: 28,
+          fontWeight: "900",
+          color: theme === "light" ? "#0B1020" : Colors.text,
+        },
+        dateText: { fontSize: 18, color: Colors.primary, fontWeight: "700" },
 
-  // Daily schedule banner
-  dayBanner: {
-    backgroundColor: Colors.card,
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: 4,
-  },
-  dayBannerLabel: {
-    color: Colors.muted,
-    fontSize: 11,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  dayBannerValue: {
-    color: Colors.text,
-    fontSize: 16,
-    fontWeight: "700",
-    marginTop: 2,
-  },
-  dayBannerVotes: { color: Colors.muted, fontSize: 11, marginTop: 2 },
-  dayBannerChevron: { color: Colors.muted, fontSize: 24 },
+        // Daily schedule banner
+        dayBanner: {
+          backgroundColor: Colors.card,
+          borderRadius: 16,
+          padding: 16,
+          flexDirection: "row",
+          alignItems: "center",
+          borderWidth: 1,
+          borderColor: Colors.border,
+          marginBottom: 4,
+        },
+        dayBannerLabel: {
+          color: Colors.muted,
+          fontSize: 11,
+          fontWeight: "600",
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+        },
+        dayBannerValue: {
+          color: Colors.text,
+          fontSize: 16,
+          fontWeight: "700",
+          marginTop: 2,
+        },
+        dayBannerVotes: { color: Colors.muted, fontSize: 11, marginTop: 2 },
+        dayBannerChevron: { color: Colors.muted, fontSize: 24 },
 
-  card: {
-    backgroundColor: Colors.card,
-    padding: 16,
-    borderRadius: 18,
-    marginBottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 14,
-  },
-  emojiContainer: {
-    width: 48,
-    height: 48,
-    backgroundColor: Colors.background,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  emojiText: { fontSize: 24 },
-  className: {
-    color: Colors.text,
-    fontWeight: "700",
-    fontSize: 17,
-    marginBottom: 2,
-  },
-  classDetail: { color: Colors.muted, fontSize: 13, fontWeight: "500" },
-  classTeacher: { color: Colors.muted, fontSize: 12, marginTop: 2 },
-  periodProgressWrap: {
-    marginTop: 10,
-    gap: 6,
-  },
-  periodProgressTrack: {
-    width: "100%",
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: Colors.background,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  periodProgressFill: {
-    height: "100%",
-    borderRadius: 999,
-  },
-  periodProgressFillUpcoming: {
-    backgroundColor: Colors.background,
-  },
-  periodProgressFillActive: {
-    backgroundColor: Colors.primary,
-  },
-  periodProgressFillPast: {
-    backgroundColor: Colors.primary,
-  },
-  periodProgressLabel: {
-    color: Colors.muted,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  periodProgressLabelActive: {
-    color: Colors.primary,
-  },
-  periodProgressLabelPast: {
-    color: Colors.primary,
-  },
+        card: {
+          backgroundColor: Colors.card,
+          padding: 16,
+          borderRadius: 18,
+          marginBottom: 12,
+          flexDirection: "row",
+          alignItems: "center",
+          borderWidth: 1,
+          borderColor: Colors.border,
+          gap: 14,
+        },
+        emojiContainer: {
+          width: 48,
+          height: 48,
+          backgroundColor: Colors.background,
+          borderRadius: 14,
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        emojiText: { fontSize: 24 },
+        className: {
+          color: Colors.text,
+          fontWeight: "700",
+          fontSize: 17,
+          marginBottom: 2,
+        },
+        classDetail: { color: Colors.muted, fontSize: 13, fontWeight: "500" },
+        classTeacher: { color: Colors.muted, fontSize: 12, marginTop: 2 },
+        periodProgressWrap: {
+          marginTop: 10,
+          gap: 6,
+        },
+        periodProgressTrack: {
+          width: "100%",
+          height: 8,
+          borderRadius: 999,
+          backgroundColor: Colors.background,
+          overflow: "hidden",
+          borderWidth: 1,
+          borderColor: Colors.border,
+        },
+        periodProgressFill: {
+          height: "100%",
+          borderRadius: 999,
+        },
+        periodProgressFillUpcoming: {
+          backgroundColor: Colors.background,
+        },
+        periodProgressFillActive: {
+          backgroundColor: Colors.primary,
+        },
+        periodProgressFillPast: {
+          backgroundColor: Colors.primary,
+        },
+        periodProgressLabel: {
+          color: Colors.muted,
+          fontSize: 12,
+          fontWeight: "600",
+        },
+        periodProgressLabelActive: {
+          color: Colors.primary,
+        },
+        periodProgressLabelPast: {
+          color: Colors.primary,
+        },
 
-  manageButton: {
-    backgroundColor: Colors.card,
-    padding: 16,
-    borderRadius: 16,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderStyle: "dashed",
-  },
-  manageButtonText: { color: Colors.primary, fontWeight: "700" },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", gap: 16 },
-  scanningText: { color: Colors.muted, fontSize: 15 },
+        manageButton: {
+          backgroundColor: Colors.card,
+          padding: 16,
+          borderRadius: 16,
+          alignItems: "center",
+          borderWidth: 1,
+          borderColor: Colors.border,
+          borderStyle: "dashed",
+        },
+        manageButtonText: { color: Colors.primary, fontWeight: "700" },
+        center: {
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 16,
+        },
+        scanningText: { color: Colors.muted, fontSize: 15 },
 
-  modal: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    padding: 24,
-    paddingTop: 20,
-  },
-  modalTitle: {
-    color: Colors.text,
-    fontSize: 26,
-    fontWeight: "900",
-    marginBottom: 4,
-  },
-  subtitle: {
-    color: Colors.muted,
-    fontSize: 15,
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  modalClose: { color: Colors.primary, fontWeight: "700", fontSize: 16 },
-  sectionLabel: {
-    color: Colors.muted,
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    marginBottom: 12,
-    marginTop: 8,
-  },
+        modal: {
+          flex: 1,
+          backgroundColor: Colors.background,
+          padding: 24,
+          paddingTop: 20,
+        },
+        modalTitle: {
+          color: Colors.text,
+          fontSize: 26,
+          fontWeight: "900",
+          marginBottom: 4,
+        },
+        subtitle: {
+          color: Colors.muted,
+          fontSize: 15,
+          marginBottom: 24,
+          lineHeight: 22,
+        },
+        modalHeader: {
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 20,
+        },
+        modalClose: { color: Colors.primary, fontWeight: "700", fontSize: 16 },
+        sectionLabel: {
+          color: Colors.muted,
+          fontSize: 13,
+          fontWeight: "600",
+          textTransform: "uppercase",
+          marginBottom: 12,
+          marginTop: 8,
+        },
 
-  // Schedule picker
-  scheduleOption: {
-    backgroundColor: Colors.card,
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  scheduleOptionActive: { borderColor: Colors.primary },
-  scheduleOptionVoted: { borderColor: Colors.primary + "88" },
-  scheduleOptionName: { color: Colors.text, fontWeight: "700", fontSize: 15 },
-  scheduleOptionPeriods: { color: Colors.muted, fontSize: 12, marginTop: 2 },
-  voteChip: {
-    backgroundColor: Colors.background,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  voteChipText: { color: Colors.muted, fontSize: 12, fontWeight: "600" },
-  myVoteDot: { color: Colors.primary, fontWeight: "900", fontSize: 16 },
-  addScheduleButton: {
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderStyle: "dashed",
-    alignItems: "center",
-  },
-  addScheduleText: { color: Colors.primary, fontWeight: "600" },
+        // Schedule picker
+        scheduleOption: {
+          backgroundColor: Colors.card,
+          padding: 16,
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: Colors.border,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+        },
+        scheduleOptionActive: { borderColor: Colors.primary },
+        scheduleOptionVoted: { borderColor: Colors.primary + "88" },
+        scheduleOptionName: {
+          color: Colors.text,
+          fontWeight: "700",
+          fontSize: 15,
+        },
+        scheduleOptionPeriods: {
+          color: Colors.muted,
+          fontSize: 12,
+          marginTop: 2,
+        },
+        voteChip: {
+          backgroundColor: Colors.background,
+          paddingHorizontal: 10,
+          paddingVertical: 4,
+          borderRadius: 10,
+        },
+        voteChipText: { color: Colors.muted, fontSize: 12, fontWeight: "600" },
+        myVoteDot: { color: Colors.primary, fontWeight: "900", fontSize: 16 },
+        addScheduleButton: {
+          padding: 16,
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: Colors.border,
+          borderStyle: "dashed",
+          alignItems: "center",
+        },
+        addScheduleText: { color: Colors.primary, fontWeight: "600" },
 
-  // New bell schedule form
-  input: {
-    backgroundColor: Colors.card,
-    color: Colors.text,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    fontSize: 15,
-    marginBottom: 12,
-  },
-  periodCountRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
-  countButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: Colors.card,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  countButtonActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  countButtonText: { color: Colors.muted, fontWeight: "600" },
-  countButtonTextActive: { color: "#fff" },
-  periodGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginBottom: 16,
-  },
-  periodToggle: {
-    width: "31%",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  periodToggleActive: {
-    backgroundColor: Colors.primary + "18",
-    borderColor: Colors.primary,
-  },
-  periodToggleText: { color: Colors.text, fontWeight: "700" },
-  periodToggleTextActive: { color: Colors.primary },
-  checkboxBox: {
-    width: 18,
-    height: 18,
-    borderRadius: 5,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.background,
-  },
-  checkboxBoxActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary,
-  },
-  checkboxDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#fff",
-  },
-  periodRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: Colors.card,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  periodLabel: {
-    color: Colors.text,
-    fontWeight: "600",
-    width: 64,
-    fontSize: 14,
-  },
-  timeInputSmall: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    color: Colors.text,
-    padding: 10,
-    borderRadius: 8,
-    fontSize: 14,
-    textAlign: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
+        // New bell schedule form
+        input: {
+          backgroundColor: Colors.card,
+          color: Colors.text,
+          padding: 16,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: Colors.border,
+          fontSize: 15,
+          marginBottom: 12,
+        },
+        periodCountRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+        countButton: {
+          flex: 1,
+          padding: 12,
+          borderRadius: 10,
+          backgroundColor: Colors.card,
+          alignItems: "center",
+          borderWidth: 1,
+          borderColor: Colors.border,
+        },
+        countButtonActive: {
+          backgroundColor: Colors.primary,
+          borderColor: Colors.primary,
+        },
+        countButtonText: { color: Colors.muted, fontWeight: "600" },
+        countButtonTextActive: { color: "#fff" },
+        periodGrid: {
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: 10,
+          marginBottom: 16,
+        },
+        periodToggle: {
+          width: "31%",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+          padding: 12,
+          borderRadius: 12,
+          backgroundColor: Colors.card,
+          borderWidth: 1,
+          borderColor: Colors.border,
+        },
+        periodToggleActive: {
+          backgroundColor: Colors.primary + "18",
+          borderColor: Colors.primary,
+        },
+        periodToggleText: { color: Colors.text, fontWeight: "700" },
+        periodToggleTextActive: { color: Colors.primary },
+        checkboxBox: {
+          width: 18,
+          height: 18,
+          borderRadius: 5,
+          borderWidth: 1.5,
+          borderColor: Colors.border,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: Colors.background,
+        },
+        checkboxBoxActive: {
+          borderColor: Colors.primary,
+          backgroundColor: Colors.primary,
+        },
+        checkboxDot: {
+          width: 8,
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: "#fff",
+        },
+        periodRow: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+          backgroundColor: Colors.card,
+          padding: 12,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: Colors.border,
+        },
+        periodLabel: {
+          color: Colors.text,
+          fontWeight: "600",
+          width: 64,
+          fontSize: 14,
+        },
+        timeInputSmall: {
+          flex: 1,
+          backgroundColor: Colors.background,
+          color: Colors.text,
+          padding: 10,
+          borderRadius: 8,
+          fontSize: 14,
+          textAlign: "center",
+          borderWidth: 1,
+          borderColor: Colors.border,
+        },
 
-  // Review modal
-  reviewCard: {
-    backgroundColor: Colors.card,
-    padding: 16,
-    borderRadius: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 10,
-  },
-  reviewBadgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 4,
-  },
-  typeBadge: {
-    backgroundColor: Colors.primary + "22",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  typeBadgeClub: { backgroundColor: Colors.secondary + "22" },
-  typeBadgeText: { color: Colors.primary, fontWeight: "700", fontSize: 12 },
-  switchTypeText: {
-    color: Colors.muted,
-    fontSize: 12,
-    textDecorationLine: "underline",
-  },
-  reviewTop: { flexDirection: "row", alignItems: "center", gap: 12 },
-  reviewEmoji: { fontSize: 26 },
-  reviewInputBold: {
-    flex: 1,
-    color: Colors.text,
-    fontSize: 17,
-    fontWeight: "700",
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    paddingBottom: 4,
-  },
-  reviewInput: {
-    color: Colors.text,
-    fontSize: 14,
-    backgroundColor: Colors.background,
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  timeRow: { flexDirection: "row", gap: 10, alignItems: "center" },
-  timeInput: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    color: Colors.text,
-    padding: 12,
-    borderRadius: 10,
-    fontSize: 14,
-    textAlign: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
+        // Review modal
+        reviewCard: {
+          backgroundColor: Colors.card,
+          padding: 16,
+          borderRadius: 14,
+          marginBottom: 12,
+          borderWidth: 1,
+          borderColor: Colors.border,
+          gap: 10,
+        },
+        reviewBadgeRow: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+          marginBottom: 4,
+        },
+        typeBadge: {
+          backgroundColor: Colors.primary + "22",
+          paddingHorizontal: 10,
+          paddingVertical: 4,
+          borderRadius: 8,
+        },
+        typeBadgeClub: { backgroundColor: Colors.secondary + "22" },
+        typeBadgeText: {
+          color: Colors.primary,
+          fontWeight: "700",
+          fontSize: 12,
+        },
+        switchTypeText: {
+          color: Colors.muted,
+          fontSize: 12,
+          textDecorationLine: "underline",
+        },
+        reviewTop: { flexDirection: "row", alignItems: "center", gap: 12 },
+        reviewEmoji: { fontSize: 26 },
+        reviewInputBold: {
+          flex: 1,
+          color: Colors.text,
+          fontSize: 17,
+          fontWeight: "700",
+          borderBottomWidth: 1,
+          borderBottomColor: Colors.border,
+          paddingBottom: 4,
+        },
+        reviewInput: {
+          color: Colors.text,
+          fontSize: 14,
+          backgroundColor: Colors.background,
+          padding: 10,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: Colors.border,
+        },
+        timeRow: { flexDirection: "row", gap: 10, alignItems: "center" },
+        timeInput: {
+          flex: 1,
+          backgroundColor: Colors.background,
+          color: Colors.text,
+          padding: 12,
+          borderRadius: 10,
+          fontSize: 14,
+          textAlign: "center",
+          borderWidth: 1,
+          borderColor: Colors.border,
+        },
 
-  saveButton: {
-    backgroundColor: Colors.primary,
-    padding: 18,
-    borderRadius: 18,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  saveButtonText: { color: "#fff", fontWeight: "800", fontSize: 16 },
-  skipButton: { padding: 16, alignItems: "center" },
-  skipText: { color: Colors.muted, fontSize: 15 },
-  scanRow: { flexDirection: "row", gap: 12, marginBottom: 16 },
-  scanButton: {
-    flex: 1,
-    backgroundColor: Colors.card,
-    padding: 16,
-    borderRadius: 14,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  scanButtonText: { color: Colors.text, fontWeight: "600" },
-  manageCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  manageName: { color: Colors.text, fontWeight: "600" },
-  manageSub: { color: Colors.muted, fontSize: 12, marginTop: 2 },
-  empty: {
-    color: Colors.muted,
-    textAlign: "center",
-    marginTop: 40,
-    fontSize: 15,
-  },
-});
+        saveButton: {
+          backgroundColor: Colors.primary,
+          padding: 18,
+          borderRadius: 18,
+          alignItems: "center",
+          marginTop: 10,
+        },
+        saveButtonText: { color: "#fff", fontWeight: "800", fontSize: 16 },
+        skipButton: { padding: 16, alignItems: "center" },
+        skipText: { color: Colors.muted, fontSize: 15 },
+        scanRow: { flexDirection: "row", gap: 12, marginBottom: 16 },
+        scanButton: {
+          flex: 1,
+          backgroundColor: Colors.card,
+          padding: 16,
+          borderRadius: 14,
+          alignItems: "center",
+          borderWidth: 1,
+          borderColor: Colors.border,
+        },
+        scanButtonText: { color: Colors.text, fontWeight: "600" },
+        manageCard: {
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: 16,
+          backgroundColor: Colors.card,
+          borderRadius: 14,
+          marginBottom: 10,
+          borderWidth: 1,
+          borderColor: Colors.border,
+        },
+        manageName: { color: Colors.text, fontWeight: "600" },
+        manageSub: { color: Colors.muted, fontSize: 12, marginTop: 2 },
+        empty: {
+          color: Colors.muted,
+          textAlign: "center",
+          marginTop: 40,
+          fontSize: 15,
+        },
+      }),
+    [theme],
+  );
+};
