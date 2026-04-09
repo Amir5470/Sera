@@ -1,5 +1,6 @@
 import { PressableScale } from "@/components/animated-helpers";
 import { Colors } from "@/constants/colors";
+import { classstyles } from "@/constants/styles";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
@@ -28,7 +29,7 @@ export default function TosPrivacyScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <PressableScale onPress={() => router.back()}>
-          <Text style={styles.backButton}>← Back</Text>
+          <Text style={classstyles.backText}>← Back</Text>
         </PressableScale>
 
         <View style={styles.tabContainer}>
@@ -95,10 +96,7 @@ export default function TosPrivacyScreen() {
           setError(true);
         }}
         startInLoadingState={true}
-        renderLoading={() => (
-          <View style={styles.loadingContainer}>
-          </View>
-        )}
+        renderLoading={() => <View style={styles.loadingContainer}></View>}
       />
     </View>
   );

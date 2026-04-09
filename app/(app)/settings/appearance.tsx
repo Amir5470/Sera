@@ -1,5 +1,6 @@
 import { PressableScale } from "@/components/animated-helpers";
 import { Colors } from "@/constants/colors";
+import { classstyles } from "@/constants/styles";
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -49,7 +50,7 @@ export default function AppearanceScreen() {
   return (
     <View style={stylesMemo.container}>
       <View style={stylesMemo.headerRow}>
-        <Text style={stylesMemo.header}>Appearance</Text>
+        <Text style={classstyles.headerText}>Appearance</Text>
       </View>
 
       <View style={stylesMemo.card}>
@@ -97,10 +98,10 @@ export default function AppearanceScreen() {
       </View>
 
       <PressableScale
-        style={stylesMemo.backButton}
+        style={classstyles.backButton}
         onPress={() => router.back()}
       >
-        <Text style={stylesMemo.backText}>Back</Text>
+        <Text style={classstyles.backText}>Back</Text>
       </PressableScale>
     </View>
   );

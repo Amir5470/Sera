@@ -1,3 +1,4 @@
+import Header from "@/components/ui/Header";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -50,7 +51,7 @@ export default function Clubs() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Clubs & Groups</Text>
+      <Header title="Clubs & Groups" />
 
       {loading ? (
         <View style={styles.center}>

@@ -1,3 +1,4 @@
+import Header from "@/components/ui/Header";
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import {
@@ -65,7 +66,7 @@ export default function Classes() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Class Rooms</Text>
+      <Header title="Class Rooms" />
       {loading ? (
         <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
       ) : (

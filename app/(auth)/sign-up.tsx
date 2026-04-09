@@ -1,3 +1,4 @@
+import { classstyles } from "@/constants/styles";
 import * as Google from "expo-auth-session/providers/google";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -64,7 +65,7 @@ export default function SignUp() {
       />
       <Text style={styles.tagline}>Join your school.</Text>
       <TextInput
-        style={styles.input}
+        style={classstyles.input}
         placeholder="Email"
         placeholderTextColor={Colors.muted}
         value={email}
@@ -73,7 +74,7 @@ export default function SignUp() {
         autoCapitalize="none"
       />
       <TextInput
-        style={styles.input}
+        style={classstyles.input}
         placeholder="Password"
         placeholderTextColor={Colors.muted}
         value={password}

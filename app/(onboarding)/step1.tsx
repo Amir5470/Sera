@@ -1,3 +1,4 @@
+import { classstyles } from "@/constants/styles";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, View } from "react-native";
@@ -52,19 +53,19 @@ export default function Step1() {
         <View style={styles.dot} />
         <View style={styles.dot} />
       </View>
-      <Text style={styles.title}>What&apos;s your name?</Text>
+      <Text style={classstyles.headerText}>What&apos;s your name?</Text>
       <Text style={styles.subtitle}>
         This is how you&apos;ll appear to your school.
       </Text>
       <TextInput
-        style={styles.input}
+        style={classstyles.input}
         placeholder="Display name (e.g. John Doe)"
         placeholderTextColor={Colors.muted}
         value={displayName}
         onChangeText={setDisplayName}
       />
       <TextInput
-        style={styles.input}
+        style={classstyles.input}
         placeholder="Username (e.g. CoolKid123)"
         placeholderTextColor={Colors.muted}
         value={username}

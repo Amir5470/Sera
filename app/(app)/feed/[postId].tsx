@@ -1,3 +1,5 @@
+import BackButton from "@/components/ui/BackButton";
+import Header from "@/components/ui/Header";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
@@ -84,9 +86,7 @@ export default function PostDetailScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.empty}>Post not found.</Text>
-        <PressableScale style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backText}>Back to Feed</Text>
-        </PressableScale>
+        <BackButton label="Back to Feed" />
       </View>
     );
   }
@@ -94,9 +94,7 @@ export default function PostDetailScreen() {
   return (
     <SlideUpView style={styles.container}>
       <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1 }}>
-        <View style={styles.headerRow}>
-          <Text style={styles.headerText}>Post</Text>
-        </View>
+        <Header title="Post" />
         <View style={styles.card}>
           <View style={styles.postHeader}>
             <Text style={styles.author}>{post.authorName}</Text>
@@ -180,9 +178,7 @@ export default function PostDetailScreen() {
           </View>
         </View>
 
-        <PressableScale style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backText}>Back</Text>
-        </PressableScale>
+        <BackButton />
       </SafeAreaView>
     </SlideUpView>
   );

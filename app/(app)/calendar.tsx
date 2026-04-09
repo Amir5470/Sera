@@ -1,5 +1,6 @@
 import { PressableScale } from "@/components/animated-helpers";
 import { Colors } from "@/constants/colors";
+import { classstyles } from "@/constants/styles";
 import { useAuth } from "@/hooks/useAuth";
 import { useBellSchedules } from "@/hooks/useBellSchedules";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
@@ -366,7 +367,7 @@ export default function CalendarScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.header}>Calendar</Text>
+        <Text style={classstyles.headerText}>Calendar</Text>
 
         <View style={styles.monthHeader}>
           <PressableScale
@@ -492,7 +493,7 @@ export default function CalendarScreen() {
             <Text style={styles.modalHint}>Date: {selectedDateKey}</Text>
 
             <TextInput
-              style={styles.input}
+              style={classstyles.input}
               placeholder="Event name"
               placeholderTextColor={Colors.muted}
               value={name}
@@ -500,14 +501,14 @@ export default function CalendarScreen() {
             />
             <View style={styles.timeRow}>
               <TextInput
-                style={[styles.input, styles.timeInput]}
+                style={[classstyles.input, styles.timeInput]}
                 placeholder="Start (3:30 PM)"
                 placeholderTextColor={Colors.muted}
                 value={startTime}
                 onChangeText={setStartTime}
               />
               <TextInput
-                style={[styles.input, styles.timeInput]}
+                style={[classstyles.input, styles.timeInput]}
                 placeholder="End (5:00 PM)"
                 placeholderTextColor={Colors.muted}
                 value={endTime}
@@ -515,7 +516,7 @@ export default function CalendarScreen() {
               />
             </View>
             <TextInput
-              style={[styles.input, styles.detailsInput]}
+              style={[classstyles.input, styles.detailsInput]}
               placeholder="Details"
               placeholderTextColor={Colors.muted}
               value={details}

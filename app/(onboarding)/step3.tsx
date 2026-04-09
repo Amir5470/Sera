@@ -1,4 +1,5 @@
 import { PressableScale } from "@/components/animated-helpers";
+import { classstyles } from "@/constants/styles";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -81,14 +82,14 @@ export default function Step3() {
         <View style={styles.dot} />
         <View style={styles.dot} />
       </View>
-      <Text style={styles.title}>Your school</Text>
+      <Text style={classstyles.headerText}>Your school</Text>
       <Text style={styles.subtitle}>
         Help us connect you with your school community.
       </Text>
 
       <View style={styles.autocompleteContainer}>
         <TextInput
-          style={styles.input}
+          style={classstyles.input}
           placeholder="School name (e.g. West Jefferson High School)"
           placeholderTextColor={Colors.muted}
           value={school}
@@ -114,7 +115,7 @@ export default function Step3() {
       </View>
 
       <TextInput
-        style={styles.input}
+        style={classstyles.input}
         placeholder="City (e.g. Chicago, IL)"
         placeholderTextColor={Colors.muted}
         value={city}

@@ -210,6 +210,20 @@ function AppDrawer({ profile }: { profile: any }) {
             ),
           }}
         />
+        <Drawer.Screen
+          name="more"
+          options={{
+            drawerLabel: "More",
+            title: "More",
+            drawerIcon: ({ color }) => (
+              <Ionicons
+                name="ellipsis-vertical-outline"
+                size={22}
+                color={color}
+              />
+            ),
+          }}
+        />
 
         <Drawer.Screen
           name="settings"

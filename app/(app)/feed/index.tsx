@@ -1,5 +1,7 @@
 import { PressableScale } from "@/components/animated-helpers";
+import SendButton from "@/components/ui/SendButton";
 import { Colors } from "@/constants/colors";
+import { classstyles } from "@/constants/styles";
 import { useAuth } from "@/hooks/useAuth";
 import { Post, useFeed } from "@/hooks/useFeed";
 import { useProfile } from "@/hooks/useProfile";
@@ -294,23 +296,33 @@ function PostCard({
       <Modal
         visible={menuVisible}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setMenuVisible(false)}
       >
         <Pressable
           style={{
             flex: 1,
             backgroundColor: "rgba(0,0,0,0.5)",
-            justifyContent: "flex-end",
+            justifyContent: "center",
+            alignItems: "center",
+            elevation: 3,
           }}
           onPress={() => setMenuVisible(false)}
         >
           <View
             style={{
               backgroundColor: theme === "light" ? "#FFFFFF" : Colors.card,
-              padding: 16,
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
+              padding: 22,
+              borderRadius: 18,
+              shadowColor: "#000",
+              shadowOffset: {
+                width: 0,
+                height: 2,
+              },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5,
+              marginHorizontal: 20,
             }}
           >
             {!confirmDelete ? (
@@ -334,7 +346,7 @@ function PostCard({
                   numberOfLines={4}
                   ellipsizeMode="tail"
                 >
-                  {post.text}
+                  {post.text || post.event?.name}
                 </Text>
 
                 <View
@@ -342,6 +354,7 @@ function PostCard({
                     flexDirection: "row",
                     justifyContent: "space-around",
                     marginTop: 16,
+                    gap: 12,
                   }}
                 >
                   <PressableScale
@@ -388,7 +401,7 @@ function PostCard({
                         paddingVertical: 10,
                         paddingHorizontal: 18,
                         borderRadius: 12,
-                        backgroundColor: Colors.card,
+                        backgroundColor: Colors.background,
                         minWidth: 90,
                         alignItems: "center",
                       }}
@@ -447,6 +460,7 @@ function PostCard({
                     flexDirection: "row",
                     justifyContent: "space-around",
                     marginTop: 16,
+                    gap: 12,
                   }}
                 >
                   <PressableScale
@@ -518,23 +532,33 @@ export default function FeedScreen() {
           flex: 1,
           backgroundColor: theme === "light" ? "#FFFFFF" : Colors.background,
         },
-        header: { paddingTop: 40, paddingHorizontal: 16, paddingBottom: 12 },
+        header: { paddingTop: 20, paddingHorizontal: 16, paddingBottom: 12 },
         headerText: {
           color: theme === "light" ? "#0B1020" : Colors.text,
           fontSize: 28,
           fontWeight: "700",
         },
         composer: {
-          marginHorizontal: 16,
+          marginHorizontal: 14,
+          flexDirection: "column",
+          justifyContent: "space-between",
           backgroundColor: theme === "light" ? "#F6F7FB" : Colors.card,
           borderRadius: 12,
           padding: 12,
           gap: 8,
+          minHeight: 140,
+          marginTop: 4,
         },
         input: {
           color: theme === "light" ? "#0B1020" : Colors.text,
           fontSize: 15,
-          minHeight: 60,
+          minHeight: 120,
+          flex: 1,
+          borderWidth: 1,
+          borderColor: Colors.border,
+          borderRadius: 12,
+          padding: 10,
+          backgroundColor: theme === "light" ? "#FFFFFF" : Colors.card,
           textAlignVertical: "top",
         },
         button: {
@@ -676,32 +700,31 @@ export default function FeedScreen() {
 
       <View style={styles.composer}>
         <TextInput
-          style={styles.input}
+          style={classstyles.input}
           placeholder="What's happening at school?"
           placeholderTextColor={Colors.muted}
           value={text}
           onChangeText={setText}
           multiline
         />
-        <PressableScale
-          style={[
-            styles.button,
-            (!text.trim() || posting) && styles.buttonDisabled,
-          ]}
-          onPress={submit}
-          disabled={!text.trim() || posting}
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 8,
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
         >
-          <Text style={styles.buttonText}>Post</Text>
-        </PressableScale>
-        <PressableScale
-          style={[{ marginTop: 8 }, posting && styles.buttonDisabled]}
-          onPress={() => setEventModalVisible(true)}
-          disabled={posting}
-        >
-          <Text style={{ color: Colors.primary, fontWeight: "600" }}>
+          <SendButton onPress={submit} disabled={!text.trim() || posting}>
+            Post
+          </SendButton>
+          <SendButton
+            onPress={() => setEventModalVisible(true)}
+            disabled={posting}
+          >
             Share Event
-          </Text>
-        </PressableScale>
+          </SendButton>
+        </View>
       </View>
 
       {loading ? (

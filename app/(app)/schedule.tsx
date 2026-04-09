@@ -1,3 +1,4 @@
+import { classstyles } from "@/constants/styles";
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -336,7 +337,7 @@ function NewBellScheduleModal({
         </View>
         <Text style={styles.sectionLabel}>Schedule Name</Text>
         <TextInput
-          style={styles.input}
+          style={classstyles.input}
           placeholder="e.g. Regular Day, 2-Hour Delay..."
           placeholderTextColor={Colors.muted}
           value={name}
@@ -398,7 +399,7 @@ function NewBellScheduleModal({
               <View key={period} style={styles.periodRow}>
                 <Text style={styles.periodLabel}>Period {period}</Text>
                 <TextInput
-                  style={styles.timeInputSmall}
+                  style={classstyles.input}
                   placeholder="08:40"
                   placeholderTextColor={Colors.muted}
                   value={values.startTime}
@@ -406,7 +407,7 @@ function NewBellScheduleModal({
                 />
                 <Text style={{ color: Colors.muted }}>–</Text>
                 <TextInput
-                  style={styles.timeInputSmall}
+                  style={classstyles.input}
                   placeholder="09:25"
                   placeholderTextColor={Colors.muted}
                   value={values.endTime}
@@ -499,7 +500,7 @@ function ManualEntryModal({
           <View>
             <Text style={styles.sectionLabel}>Class Name</Text>
             <TextInput
-              style={styles.input}
+              style={classstyles.input}
               placeholder="e.g. AP Biology"
               placeholderTextColor={Colors.muted}
               value={name}
@@ -510,7 +511,7 @@ function ManualEntryModal({
           <View>
             <Text style={styles.sectionLabel}>Teacher</Text>
             <TextInput
-              style={styles.input}
+              style={classstyles.input}
               placeholder="e.g. Mr. Smith"
               placeholderTextColor={Colors.muted}
               value={teacher}
@@ -521,7 +522,7 @@ function ManualEntryModal({
           <View>
             <Text style={styles.sectionLabel}>Period</Text>
             <TextInput
-              style={styles.input}
+              style={classstyles.input}
               placeholder="e.g. 1st"
               placeholderTextColor={Colors.muted}
               value={period}
@@ -946,7 +947,7 @@ export default function Schedule() {
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <View style={styles.container}>
         <View style={styles.headerRow}>
-          <Text style={styles.header}>My Schedule</Text>
+          <Text style={classstyles.headerText}>My Schedule</Text>
           <Text style={styles.dateText}>{today}</Text>
         </View>
 

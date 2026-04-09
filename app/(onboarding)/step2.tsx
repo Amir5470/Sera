@@ -1,4 +1,5 @@
 import { PressableScale } from "@/components/animated-helpers";
+import { classstyles } from "@/constants/styles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -126,14 +127,14 @@ export default function Step2() {
         <View style={styles.dot} />
       </View>
 
-      <Text style={styles.title}>When&apos;s your birthday?</Text>
+      <Text style={classstyles.headerText}>When&apos;s your birthday?</Text>
       <Text style={styles.subtitle}>
         We need this to verify your age for legal and safety reasons.
       </Text>
 
       <View style={styles.inputContainer}>
         <TextInput
-          style={styles.input}
+          style={classstyles.input}
           placeholder="MM/DD/YYYY"
           placeholderTextColor={Colors.muted}
           keyboardType="number-pad"
