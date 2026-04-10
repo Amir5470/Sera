@@ -1,4 +1,3 @@
-import * as Notifications from "expo-notifications";
 import { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import promptDoNotDisturb from "../lib/pomodoroService";
@@ -27,12 +26,21 @@ export default function usePomodoro() {
   useEffect(() => {
     // Ensure Android channel exists for high-priority alerts
     if (Platform.OS === "android") {
-      Notifications.setNotificationChannelAsync("pomodoro", {
-        name: "Pomodoro Alerts",
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        sound: "default",
-      }).catch(() => {});
+      (async () => {
+        try {
+          const Notifications = await import("expo-notifications");
+          await Notifications.setNotificationChannelAsync("pomodoro", {
+            name: "Pomodoro Alerts",
+            importance: Notifications.AndroidImportance
+              ? Notifications.AndroidImportance.MAX
+              : 5,
+            vibrationPattern: [0, 250, 250, 250],
+            sound: "default",
+          });
+        } catch (e) {
+          // ignore missing native module in non-native environments
+        }
+      })();
     }
   }, []);
 
@@ -67,6 +75,7 @@ export default function usePomodoro() {
 
   async function scheduleEndNotification(seconds: number, title: string) {
     try {
+      const Notifications = await import("expo-notifications");
       const permission = await Notifications.getPermissionsAsync();
       if (!permission.granted) {
         await Notifications.requestPermissionsAsync();
@@ -76,10 +85,18 @@ export default function usePomodoro() {
         content: {
           title,
           body: title,
-          priority: Notifications.AndroidNotificationPriority.MAX,
+          // fall back to numeric priority if enums missing
+          priority:
+            Notifications.AndroidNotificationPriority?.MAX ??
+            Notifications.AndroidNotificationPriority ??
+            5,
           sound: "default",
         },
-        trigger: { type: "timeInterval", seconds, repeats: false },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds,
+          repeats: false,
+        } as any,
       });
       scheduledNotificationRef.current = id;
       return id;
@@ -117,9 +134,12 @@ export default function usePomodoro() {
     setSecondsLeft(workSeconds);
     setTotalSeconds(workSeconds);
     if (scheduledNotificationRef.current) {
-      Notifications.cancelScheduledNotificationAsync(
-        scheduledNotificationRef.current,
-      ).catch(() => {});
+      const notificationId = scheduledNotificationRef.current;
+      import("expo-notifications").then((Notifications) => {
+        Notifications.cancelScheduledNotificationAsync(notificationId).catch(
+          () => {},
+        );
+      });
       scheduledNotificationRef.current = null;
     }
   }
@@ -130,6 +150,7 @@ export default function usePomodoro() {
     // when work finishes, we want a "Break Time!" high priority notification —
     // we've already scheduled one at start, but also ensure immediate fire if needed.
     try {
+      const Notifications = await import("expo-notifications");
       await Notifications.scheduleNotificationAsync({
         content: {
           title: mode === "work" ? "Break Time!" : "Focus Time!",
@@ -143,6 +164,7 @@ export default function usePomodoro() {
     // cancel any previously scheduled end-notification to avoid duplicates
     if (scheduledNotificationRef.current) {
       try {
+        const Notifications = await import("expo-notifications");
         await Notifications.cancelScheduledNotificationAsync(
           scheduledNotificationRef.current,
         );

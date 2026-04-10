@@ -2,11 +2,8 @@ import { classstyles } from "@/constants/styles";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Text, View } from "react-native";
-<<<<<<< Updated upstream
-import BackButton from "./BackButton";
-=======
 import { PressableScale } from "../animated-helpers";
->>>>>>> Stashed changes
+import BackButton from "./BackButton";
 
 type Props = {
   title?: string;
@@ -29,9 +26,7 @@ export default function Header({
   return (
     <View style={[classstyles.header, style]}>
       <View style={{ width: 40 }}>
-<<<<<<< Updated upstream
         <BackButton></BackButton>
-=======
         {showBack ? (
           <PressableScale
             onPress={onPress ?? (() => router.back())}
@@ -40,7 +35,6 @@ export default function Header({
             <Text style={classstyles.backText}>←</Text>
           </PressableScale>
         ) : null}
->>>>>>> Stashed changes
       </View>
 
       <Text style={classstyles.headerText} numberOfLines={1}>

@@ -106,6 +106,7 @@ export function FadeInView({
   duration?: number;
 }) {
   const opacity = useSharedValue(0);
+  const { reduceMotion } = useAccessibility();
 
   useEffect(() => {
     if (reduceMotion) {
@@ -117,7 +118,7 @@ export function FadeInView({
       duration,
       easing: Easing.out(Easing.exp),
     });
-  }, [duration]);
+  }, [duration, reduceMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -141,6 +142,7 @@ export function SlideUpView({
 }) {
   const translateY = useSharedValue(20);
   const opacity = useSharedValue(0);
+  const { reduceMotion } = useAccessibility();
 
   useEffect(() => {
     if (reduceMotion) {
@@ -157,7 +159,7 @@ export function SlideUpView({
       duration,
       easing: Easing.out(Easing.exp),
     });
-  }, [duration]);
+  }, [duration, reduceMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
