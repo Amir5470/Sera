@@ -37,7 +37,6 @@ Sera replaces all of it.
 - ❌ No teacher or admin accounts — fully student-led
 - ❌ No school database integration — no legal/data issues
 - ❌ Not a gradebook
-- ❌ No ads, no data selling
 
 ---
 

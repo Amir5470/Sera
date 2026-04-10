@@ -249,7 +249,9 @@ function PostCard({
             paddingVertical: 10,
             paddingHorizontal: 14,
             borderRadius: 16,
-            backgroundColor: Colors.primary,
+            backgroundColor: Colors.card,
+            borderWidth: 1,
+            borderColor: Colors.primary,
           }}
           onPress={() => setExpanded(!expanded)}
         >

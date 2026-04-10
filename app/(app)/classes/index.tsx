@@ -1,4 +1,3 @@
-import Header from "@/components/ui/Header";
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import {
@@ -31,11 +30,11 @@ export default function Classes() {
           padding: 20,
           paddingTop: 40,
         },
-        header: {
-          fontSize: 28,
-          fontWeight: "bold",
+        header: { paddingTop: -10, paddingHorizontal: 16, paddingBottom: 10 },
+        headerText: {
           color: theme === "light" ? "#0B1020" : Colors.text,
-          marginBottom: 20,
+          fontSize: 28,
+          fontWeight: "700",
         },
         card: {
           backgroundColor: theme === "light" ? "#FFFFFF" : Colors.card,
@@ -66,7 +65,9 @@ export default function Classes() {
 
   return (
     <View style={styles.container}>
-      <Header title="Class Rooms" />
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Class Rooms</Text>
+      </View>
       {loading ? (
         <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
       ) : (

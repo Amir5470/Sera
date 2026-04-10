@@ -11,14 +11,14 @@ export const safeOnSnapshot = (
 ): Unsubscribe => {
   const unsub = onSnapshot(
     ref as any,
-    (snap) => {
+    (snap: any) => {
       try {
         next(snap);
       } catch (e) {
         console.error("Error processing snapshot callback:", e);
       }
     },
-    (err) => {
+    (err: any) => {
       console.error("Firestore snapshot error:", err);
       if (onError) onError(err as Error);
     },

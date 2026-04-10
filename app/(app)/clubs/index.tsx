@@ -1,4 +1,3 @@
-import Header from "@/components/ui/Header";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -51,7 +50,9 @@ export default function Clubs() {
 
   return (
     <View style={styles.container}>
-      <Header title="Clubs & Groups" />
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Clubs & Athletics</Text>
+      </View>
 
       {loading ? (
         <View style={styles.center}>
@@ -157,11 +158,11 @@ const styles = StyleSheet.create({
     paddingTop: 40,
   },
   center: { marginTop: 50 },
-  header: {
-    fontSize: 32,
-    fontWeight: "900",
+  header: { paddingTop: -10, paddingHorizontal: 16, paddingBottom: 10 },
+  headerText: {
     color: Colors.text,
-    marginBottom: 24,
+    fontSize: 28,
+    fontWeight: "700",
   },
 
   card: {

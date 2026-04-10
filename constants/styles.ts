@@ -14,7 +14,7 @@ export const sharedStyles = StyleSheet.create({
 
   // Header
   header: {
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
+    paddingTop: Platform.OS === "ios" ? 20 : 10,
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,

@@ -1,7 +1,7 @@
-import BackButton from "@/components/ui/BackButton";
 import { classstyles } from "@/constants/styles";
 import React from "react";
 import { Text, View } from "react-native";
+import BackButton from "./BackButton";
 
 type Props = {
   title?: string;
@@ -21,7 +21,7 @@ export default function Header({
   return (
     <View style={[classstyles.header, style]}>
       <View style={{ width: 40 }}>
-        {left ?? (showBack ? <BackButton /> : null)}
+        <BackButton></BackButton>
       </View>
 
       <Text style={classstyles.headerText} numberOfLines={1}>

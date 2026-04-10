@@ -9,7 +9,7 @@ type Props = {
   label?: string;
 };
 
-export default function BackButton({ onPress, label = "Back" }: Props) {
+export default function BackButton({ onPress, label = "←" }: Props) {
   const router = useRouter();
 
   return (
@@ -17,7 +17,7 @@ export default function BackButton({ onPress, label = "Back" }: Props) {
       onPress={onPress ?? (() => router.back())}
       style={classstyles.backButton}
     >
-      <Text style={classstyles.backText}>{label}</Text>
+      <Text style={classstyles.backText}>←</Text>
     </PressableScale>
   );
 }
