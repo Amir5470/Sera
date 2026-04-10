@@ -36,6 +36,29 @@ export default function MoreIndex() {
               />
               <Text style={styles.label}>Pomodoro Timer</Text>
             </View>
+<<<<<<< Updated upstream
+=======
+          </PressableScale>
+
+          <PressableScale
+            style={styles.item}
+            onPress={() => router.push("/(app)/more/study-tools" as any)}
+          >
+            <View style={styles.left}>
+              <Ionicons name="book-outline" size={20} color={Colors.primary} />
+              <Text style={styles.label}>Study Tools</Text>
+            </View>
+          </PressableScale>
+
+          <PressableScale
+            style={styles.item}
+            onPress={() => router.push("/(app)/more/campus-resources" as any)}
+          >
+            <View style={styles.left}>
+              <Ionicons name="map-outline" size={20} color={Colors.primary} />
+              <Text style={styles.label}>Campus Resources</Text>
+            </View>
+>>>>>>> Stashed changes
           </PressableScale>
         </View>
       </View>
@@ -60,6 +83,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+<<<<<<< Updated upstream
   left: { flexDirection: "column", alignItems: "center", gap: 12 },
   label: { fontSize: 14, fontWeight: "600", color: Colors.text },
   header: { paddingTop: 20, paddingHorizontal: 16, paddingBottom: 12 },
@@ -68,4 +92,8 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "700",
   },
+=======
+  left: { flexDirection: "row", alignItems: "center", gap: 12 },
+  label: { fontSize: 16, fontWeight: "600", color: "#fff" },
+>>>>>>> Stashed changes
 });

@@ -1,3 +1,4 @@
+import { useAccessibility } from "@/hooks/useAccessibility";
 import * as Haptics from "expo-haptics";
 import { useEffect, type ReactNode } from "react";
 import {
@@ -19,32 +20,45 @@ const AnimatedPressable = Reanimated.createAnimatedComponent(Pressable);
 
 export function usePressScale() {
   const pressed = useSharedValue(0);
+  const { reduceMotion } = useAccessibility();
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        scale: withTiming(pressed.value ? 0.97 : 1, {
-          duration: 120,
-          easing: Easing.out(Easing.quad),
-        }),
-      },
-    ],
-    shadowOpacity: withTiming(pressed.value ? 0.18 : 0, {
-      duration: 120,
-      easing: Easing.out(Easing.quad),
-    }),
-    shadowRadius: withTiming(pressed.value ? 8 : 2, {
-      duration: 120,
-      easing: Easing.out(Easing.quad),
-    }),
-    elevation: pressed.value ? 6 : 1,
-    // Provide boxShadow string for web (react-native-web deprecates shadow* props)
-    boxShadow: `0px ${pressed.value ? 8 : 2}px ${pressed.value ? 16 : 4}px rgba(0,0,0,${pressed.value ? 0.18 : 0})`,
-  }));
+  const animatedStyle = useAnimatedStyle(() => {
+    if (reduceMotion) {
+      return {
+        transform: [{ scale: 1 }],
+        shadowOpacity: 0,
+        shadowRadius: 2,
+        elevation: 1,
+        boxShadow: `0px 2px 4px rgba(0,0,0,0)`,
+      };
+    }
+
+    return {
+      transform: [
+        {
+          scale: withTiming(pressed.value ? 0.97 : 1, {
+            duration: 120,
+            easing: Easing.out(Easing.quad),
+          }),
+        },
+      ],
+      shadowOpacity: withTiming(pressed.value ? 0.18 : 0, {
+        duration: 120,
+        easing: Easing.out(Easing.quad),
+      }),
+      shadowRadius: withTiming(pressed.value ? 8 : 2, {
+        duration: 120,
+        easing: Easing.out(Easing.quad),
+      }),
+      elevation: pressed.value ? 6 : 1,
+      // Provide boxShadow string for web (react-native-web deprecates shadow* props)
+      boxShadow: `0px ${pressed.value ? 8 : 2}px ${pressed.value ? 16 : 4}px rgba(0,0,0,${pressed.value ? 0.18 : 0})`,
+    };
+  });
 
   const onPressIn = () => {
     pressed.value = 1;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!reduceMotion) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const onPressOut = () => {
@@ -94,6 +108,11 @@ export function FadeInView({
   const opacity = useSharedValue(0);
 
   useEffect(() => {
+    if (reduceMotion) {
+      opacity.value = 1;
+      return;
+    }
+
     opacity.value = withTiming(1, {
       duration,
       easing: Easing.out(Easing.exp),
@@ -124,6 +143,12 @@ export function SlideUpView({
   const opacity = useSharedValue(0);
 
   useEffect(() => {
+    if (reduceMotion) {
+      translateY.value = 0;
+      opacity.value = 1;
+      return;
+    }
+
     translateY.value = withTiming(0, {
       duration,
       easing: Easing.out(Easing.exp),

@@ -1,4 +1,3 @@
-import BackButton from "@/components/ui/BackButton";
 import Header from "@/components/ui/Header";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -86,7 +85,6 @@ export default function PostDetailScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.empty}>Post not found.</Text>
-        <BackButton label="Back to Feed" />
       </View>
     );
   }
@@ -177,8 +175,6 @@ export default function PostDetailScreen() {
             </PressableScale>
           </View>
         </View>
-
-        <BackButton />
       </SafeAreaView>
     </SlideUpView>
   );

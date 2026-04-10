@@ -181,6 +181,13 @@ export default function SettingsScreen() {
               } as any)
             }
           />
+          <View style={styles.divider} />
+          <SettingsItem
+            icon="people-outline"
+            label="Invite Friends"
+            subtext="Share the app"
+            onPress={() => router.push("/settings/invite" as any)}
+          />
         </View>
       </View>
 
@@ -198,12 +205,26 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>App</Text>
+        <View style={styles.divider} />
+        <SettingsItem
+          icon="person-circle-outline"
+          label="Quick Profile"
+          subtext="View summary & edit"
+          onPress={() => router.push("/settings/quick-profile" as any)}
+        />
         <View style={styles.card}>
           <SettingsItem
             icon="color-palette-outline"
             label="Appearance"
             subtext="Light or dark mode"
             onPress={() => router.push("/settings/appearance" as any)}
+          />
+          <View style={styles.divider} />
+          <SettingsItem
+            icon="accessibility-outline"
+            label="Accessibility"
+            subtext="Text size, reduce motion"
+            onPress={() => router.push("/settings/accessibility" as any)}
           />
           <View style={styles.divider} />
           <SettingsItem

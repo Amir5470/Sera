@@ -7,6 +7,7 @@ import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, View } from "react-native";
 import TourGuide from "../components/tour-guide";
+import { AccessibilityProvider } from "../hooks/useAccessibility";
 import { useAuth } from "../hooks/useAuth";
 import { useProfile } from "../hooks/useProfile";
 import { ThemeProvider as AppThemeProvider } from "../hooks/useTheme";
@@ -102,24 +103,30 @@ export default function RootLayout() {
   return (
     <NavThemeProvider value={SeraTheme}>
       <AppThemeProvider>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <View style={{ flex: 1, backgroundColor: "#0D0A1A" }}>
-            {!splashComplete || authLoading || profileLoading ? (
-              <Splash />
-            ) : (
-              <Slot />
-            )}
-            <TourGuide
-              visible={
-                showTour && !(!splashComplete || authLoading || profileLoading)
-              }
-              onClose={() => setShowTour(false)}
-            />
-          </View>
-        </KeyboardAvoidingView>
+        <AccessibilityProvider>
+          {/* Accessibility provider persists accessibility prefs and exposes them app-wide */}
+          {/* Imported lazily here to avoid circular imports in hooks */}
+          {/* Add provider import */}
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+          >
+            <View style={{ flex: 1, backgroundColor: "#0D0A1A" }}>
+              {!splashComplete || authLoading || profileLoading ? (
+                <Splash />
+              ) : (
+                <Slot />
+              )}
+              <TourGuide
+                visible={
+                  showTour &&
+                  !(!splashComplete || authLoading || profileLoading)
+                }
+                onClose={() => setShowTour(false)}
+              />
+            </View>
+          </KeyboardAvoidingView>
+        </AccessibilityProvider>
       </AppThemeProvider>
     </NavThemeProvider>
   );
