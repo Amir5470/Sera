@@ -14,7 +14,7 @@ export const useSchedule = () => {
     const unsub = safeOnSnapshot(
       q,
       (snap) => {
-        setClasses(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setClasses(snap.docs.map((d: any) => ({ id: d.id, ...d.data() })));
       },
       (err) => {
         console.error("useSchedule snapshot error:", err);

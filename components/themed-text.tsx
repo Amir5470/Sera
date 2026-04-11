@@ -1,4 +1,10 @@
-import { StyleSheet, Text, type TextProps, TextStyle } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  type StyleProp,
+  type TextProps,
+  type TextStyle,
+} from "react-native";
 
 import { useAccessibility } from "@/hooks/useAccessibility";
 import { useThemeColor } from "../hooks/use-theme-color";
@@ -18,8 +24,8 @@ export function ThemedText({
 }: ThemedTextProps) {
   const { largeText } = useAccessibility();
   const color = useThemeColor({ light: lightColor, dark: darkColor }, "text");
-  const adjustForLarge = (s?: TextStyle | TextStyle[]) => {
-    if (!largeText) return s;
+  const adjustForLarge = (s?: StyleProp<TextStyle>): StyleProp<TextStyle> => {
+    if (!largeText) return s as StyleProp<TextStyle>;
     const grow = (st?: TextStyle) => {
       if (!st) return st;
       const copy = { ...st } as TextStyle;
@@ -30,7 +36,7 @@ export function ThemedText({
     };
     if (Array.isArray(s))
       return s.map((x) => (typeof x === "object" ? grow(x as TextStyle) : x));
-    return grow(s as TextStyle);
+    return grow(s as TextStyle) as StyleProp<TextStyle>;
   };
 
   return (

@@ -29,7 +29,7 @@ export const useFeed = (schoolId: string | undefined) => {
       q,
       (snap) => {
         setPosts(
-          snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Post),
+          snap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }) as Post),
         );
         setLoading(false);
       },

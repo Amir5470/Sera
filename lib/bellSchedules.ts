@@ -108,3 +108,16 @@ export const getDailySchedule = async (schoolId: string) => {
     activeScheduleId: string;
   };
 };
+
+// Set the school's default bell schedule (used when there is no daily override).
+export const setDefaultBellSchedule = async (
+  schoolId: string,
+  scheduleId: string,
+) => {
+  const ref = doc(db, "schools", schoolId, "dailySchedule", "default");
+  await setDoc(ref, {
+    defaultScheduleId: scheduleId,
+    updatedAt: serverTimestamp(),
+  });
+  return scheduleId;
+};

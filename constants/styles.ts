@@ -14,7 +14,7 @@ export const sharedStyles = StyleSheet.create({
 
   // Header
   header: {
-    paddingTop: Platform.OS === "ios" ? 20 : 10,
+    paddingTop: Platform.OS === "ios" ? 0 : 10,
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
@@ -118,7 +118,7 @@ export const sharedStyles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   sendButtonDisabled: { opacity: 0.5 },
-  sendButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  sendButtonText: { color: Colors.text, fontWeight: "700", fontSize: 14 },
 });
 
 // Keep previous named exports for compatibility but point them to the shared styles

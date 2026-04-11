@@ -32,7 +32,7 @@ export const useClassRooms = (
     const unsub = safeOnSnapshot(
       classesRef,
       async (snapshot) => {
-        const promises = snapshot.docs.map(async (classDoc) => {
+        const promises = snapshot.docs.map(async (classDoc: any) => {
           const memberRef = doc(
             db,
             "schools",

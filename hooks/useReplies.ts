@@ -23,7 +23,9 @@ export const useReplies = (schoolId: string | undefined, postId: string) => {
     const unsub = safeOnSnapshot(
       q,
       (snap) => {
-        setReplies(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Reply));
+        setReplies(
+          snap.docs.map((d: any) => ({ id: d.id, ...d.data() }) as Reply),
+        );
       },
       (err) => {
         console.error("useReplies snapshot error:", err);

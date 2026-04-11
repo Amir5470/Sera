@@ -75,6 +75,51 @@ export default function MoreIndex() {
             </View>
           </PressableScale>
         </View>
+        <View style={styles.card}>
+          <PressableScale
+            style={styles.item}
+            onPress={() => router.push("/(app)/more/exams" as any)}
+          >
+            <View style={styles.left}>
+              <Ionicons
+                name="calendar-outline"
+                size={80}
+                color={Colors.primary}
+              />
+              <Text style={styles.label}>Exam Deadlines</Text>
+            </View>
+          </PressableScale>
+        </View>
+        <View style={styles.card}>
+          <PressableScale
+            style={styles.item}
+            onPress={() => router.push("/(app)/more/class-events" as any)}
+          >
+            <View style={styles.left}>
+              <Ionicons
+                name="megaphone-outline"
+                size={80}
+                color={Colors.primary}
+              />
+              <Text style={styles.label}>Class Events</Text>
+            </View>
+          </PressableScale>
+        </View>
+        <View style={styles.card}>
+          <PressableScale
+            style={styles.item}
+            onPress={() => router.push("/(app)/more/teacher-contact" as any)}
+          >
+            <View style={styles.left}>
+              <Ionicons
+                name="mail-open-outline"
+                size={80}
+                color={Colors.primary}
+              />
+              <Text style={styles.label}>Teacher Quick Contact</Text>
+            </View>
+          </PressableScale>
+        </View>
       </View>
     </ScrollView>
   );

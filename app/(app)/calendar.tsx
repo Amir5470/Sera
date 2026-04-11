@@ -121,12 +121,15 @@ export default function CalendarScreen() {
     // Use today's active schedule if there's an override for the selected day,
     // otherwise fall back to the school's default bell schedule template.
     const effectiveSchedule = activeSchedule ?? defaultSchedule;
-    const activePeriods = effectiveSchedule?.periods || [];
+    const activePeriods = (effectiveSchedule as any)?.periods || [];
     const periodMap = new Map(
-      activePeriods.map((period) => [normalizePeriod(period.period), period]),
+      activePeriods.map((period: any) => [
+        normalizePeriod(period.period),
+        period,
+      ]),
     );
     const activeSet = new Set(
-      activePeriods.map((period) => normalizePeriod(period.period)),
+      activePeriods.map((period: any) => normalizePeriod(period.period)),
     );
 
     const visible = activePeriods.length
@@ -135,7 +138,7 @@ export default function CalendarScreen() {
 
     return [...visible]
       .map((cls) => {
-        const periodData = periodMap.get(normalizePeriod(cls.period));
+        const periodData = periodMap.get(normalizePeriod(cls.period)) as any;
         const start = periodData?.startTime || cls.startTime;
         const end = periodData?.endTime || cls.endTime;
         return {

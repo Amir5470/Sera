@@ -31,7 +31,7 @@ export const useClassChat = (
       q,
       (snap) => {
         setMessages(
-          snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Message),
+          snap.docs.map((d: any) => ({ id: d.id, ...d.data() }) as Message),
         );
         setLoading(false);
       },

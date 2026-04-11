@@ -72,6 +72,13 @@ const parseTimeToMinutes = (time?: string) => {
     hours += 12;
   }
 
+  // If no meridiem was provided, apply the same heuristic used elsewhere
+  // (times with hour < 7 are likely afternoon/evening times such as "1:15").
+  // This keeps sorting and progress calculation consistent.
+  if (!meridiem && hours < 7) {
+    hours += 12;
+  }
+
   return hours * 60 + minutes;
 };
 
@@ -591,7 +598,7 @@ function DailySchedulePicker({
   schoolId: string;
   userId: string;
 }) {
-  const { schedules, activeSchedule, votes, voteCounts } =
+  const { schedules, activeSchedule, votes, voteCounts, defaultScheduleId } =
     useBellSchedules(schoolId);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [newScheduleVisible, setNewScheduleVisible] = useState(false);
@@ -614,6 +621,16 @@ function DailySchedulePicker({
       await import("../../lib/bellSchedules");
     const id = await create(schoolId, userId, name, periods);
     await voteForSchedule(schoolId, userId, id);
+  };
+
+  const handleSetDefault = async (scheduleId: string) => {
+    if (!schoolId) return;
+    const { setDefaultBellSchedule } = await import("../../lib/bellSchedules");
+    try {
+      await setDefaultBellSchedule(schoolId, scheduleId);
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Could not set default schedule.");
+    }
   };
 
   return (
@@ -681,8 +698,21 @@ function DailySchedulePicker({
                     <Text style={styles.scheduleOptionPeriods}>
                       {s.periods.length} period
                       {s.periods.length !== 1 ? "s" : ""} •{" "}
-                      {s.periods.map((period) => period.period).join(", ")}
+                      {s.periods.map((period: any) => period.period).join(", ")}
                     </Text>
+                  </View>
+                  <View style={{ alignItems: "center", marginRight: 8 }}>
+                    {defaultScheduleId === s.id ? (
+                      <Text style={{ color: Colors.primary, fontSize: 12 }}>
+                        Default
+                      </Text>
+                    ) : (
+                      <PressableScale onPress={() => handleSetDefault(s.id)}>
+                        <Text style={{ color: Colors.muted, fontSize: 12 }}>
+                          Set default
+                        </Text>
+                      </PressableScale>
+                    )}
                   </View>
                   <View style={styles.voteChip}>
                     <Text style={styles.voteChipText}>
@@ -778,16 +808,19 @@ export default function Schedule() {
         const [h, m] = t.split(":").map(Number);
         return h < 7 ? (h + 12) * 60 + m : h * 60 + m;
       };
+
       // Override times with today's active bell schedule if available
       const getStart = (cls: (typeof classRooms)[0]) => {
         if (activeSchedule) {
           const slot = activeSchedule.periods.find(
-            (p) => normalizePeriod(p.period) === normalizePeriod(cls.period),
+            (p: any) =>
+              normalizePeriod(p.period) === normalizePeriod(cls.period),
           );
           if (slot) return toMinutes(slot.startTime);
         }
         return toMinutes(cls.startTime);
       };
+
       const orderA =
         activePeriodOrder.get(normalizePeriod(a.period)) ??
         Number.MAX_SAFE_INTEGER;

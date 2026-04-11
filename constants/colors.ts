@@ -5,6 +5,7 @@ const dark = {
   text: "#FFFFFF",
   muted: "rgba(255, 255, 255, 0.45)",
   card: "#1A1530",
+  cardGradient: ["#050c1b", "#000000", "#1A1530"],
   border: "rgba(255,255,255,0.1)",
   background2: "#000000",
 };
@@ -16,13 +17,14 @@ const light = {
   text: "#0B1020",
   muted: "rgba(11,16,32,0.45)",
   card: "#FFFFFF",
+  cardGradient: ["#bcbcbc", "#ababab", "#dddddd"],
   border: "rgba(11,16,32,0.06)",
   background2: "#F6F7FB",
 };
 
 // Mutable Colors object imported across the app. Theme switching mutates this object in place
 // so existing imports see updated values without needing to re-import.
-export const Colors: Record<string, string> = { ...dark };
+export const Colors: Record<string, any> = { ...dark };
 
 export const palettes = { dark, light };
 

@@ -31,7 +31,7 @@ export const useClubs = (
     const unsub = safeOnSnapshot(
       q,
       async (snap) => {
-        const memberChecks = snap.docs.map(async (d) => {
+        const memberChecks = snap.docs.map(async (d: any) => {
           const memberRef = doc(
             db,
             "schools",

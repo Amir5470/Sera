@@ -55,15 +55,39 @@ export const useBellSchedules = (schoolId: string | undefined) => {
     return unsub;
   }, [schoolId]);
 
+  // Listen to school's default schedule selection (if set)
+  const [defaultScheduleId, setDefaultScheduleId] = useState<string | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!schoolId) return;
+    const unsub = onSnapshot(
+      doc(db, "schools", schoolId, "dailySchedule", "default"),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          setDefaultScheduleId(data.defaultScheduleId || null);
+        } else {
+          setDefaultScheduleId(null);
+        }
+      },
+    );
+    return unsub;
+  }, [schoolId]);
+
   const activeSchedule =
     schedules.find((s) => s.id === activeScheduleId) ?? null;
 
-  // Default schedule: prefer a template named 'Regular' (case-insensitive),
-  // otherwise fall back to the first template if available. This is used by
-  // screens (calendar/schedule) as the baseline schedule for days that have
-  // not been overridden by a daily vote/override document.
+  // Default schedule: prefer explicit default set by school admin, otherwise
+  // prefer a template named 'Regular' (case-insensitive), otherwise fall
+  // back to the first template if available. This is used by screens
+  // (calendar/schedule) as the baseline schedule for days that have not
+  // been overridden by a daily vote/override document.
   const defaultSchedule =
-    schedules.find((s) => /^regular/i.test(s.name)) ?? schedules[0] ?? null;
+    (defaultScheduleId && schedules.find((s) => s.id === defaultScheduleId)) ??
+    schedules.find((s) => /^regular/i.test(s.name)) ??
+    schedules[0] ??
+    null;
 
   // Vote count per schedule
   const voteCounts: Record<string, number> = {};
@@ -75,6 +99,7 @@ export const useBellSchedules = (schoolId: string | undefined) => {
     schedules,
     activeSchedule,
     defaultSchedule,
+    defaultScheduleId,
     activeScheduleId,
     votes,
     voteCounts,

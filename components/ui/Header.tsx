@@ -3,7 +3,6 @@ import { useRouter } from "expo-router";
 import React from "react";
 import { Text, View } from "react-native";
 import { PressableScale } from "../animated-helpers";
-import BackButton from "./BackButton";
 
 type Props = {
   title?: string;
@@ -26,7 +25,6 @@ export default function Header({
   return (
     <View style={[classstyles.header, style]}>
       <View style={{ width: 40 }}>
-        <BackButton></BackButton>
         {showBack ? (
           <PressableScale
             onPress={onPress ?? (() => router.back())}

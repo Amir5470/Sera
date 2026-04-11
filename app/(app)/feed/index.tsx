@@ -65,7 +65,7 @@ function PostCard({
     () =>
       StyleSheet.create({
         card: {
-          backgroundColor: theme === "light" ? "#FFFFFF" : Colors.card,
+          backgroundColor: theme === "light" ? Colors.card : Colors.card,
           borderRadius: 12,
           padding: 14,
           gap: 6,
@@ -255,7 +255,7 @@ function PostCard({
           }}
           onPress={() => setExpanded(!expanded)}
         >
-          <Text style={{ color: "#fff", fontSize: 14 }}>
+          <Text style={{ color: Colors.text, fontSize: 14 }}>
             {expanded ? "Hide replies" : "View Replies"}
           </Text>
         </PressableScale>

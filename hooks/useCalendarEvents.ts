@@ -26,7 +26,7 @@ export const useCalendarEvents = (userId: string | undefined) => {
       (snap) => {
         setEvents(
           snap.docs.map(
-            (doc) =>
+            (doc: any) =>
               ({
                 id: doc.id,
                 ...doc.data(),

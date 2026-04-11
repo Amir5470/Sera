@@ -8,7 +8,7 @@
     "**/.tmp.driveupload": true,
     "**/.tmp.drivedownload": true,
     "**/node_modules": true,
-    "**/.expo": true
+    "**/.expo": false
   },
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode"

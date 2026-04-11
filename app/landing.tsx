@@ -21,6 +21,7 @@ import Reanimated, {
   withTiming,
 } from "react-native-reanimated";
 import { FadeInView, PressableScale } from "../components/animated-helpers";
+import GradientBackground from "../components/GradientBackground";
 import { Colors } from "../constants/colors";
 import { useAuth } from "../hooks/useAuth";
 import { useBellSchedules } from "../hooks/useBellSchedules";
@@ -165,16 +166,25 @@ function NextClassBadge({
   }
 
   return (
-    <Reanimated.View style={[localStyles.badge, badgeStyle]}>
-      <Text style={localStyles.badgeLabel}>{displayClass.label}</Text>
-      <Text style={localStyles.badgeClass}>
-        {displayClass.cls.emoji || "📖"} {displayClass.cls.name}
-      </Text>
-      {displayClass.cls.startTime && (
-        <Text style={localStyles.badgeTime}>
-          {displayClass.cls.startTime} – {displayClass.cls.endTime}
+    <Reanimated.View style={[badgeStyle]}>
+      <GradientBackground
+        colors={
+          theme === "light"
+            ? (Colors as any).cardGradient
+            : (Colors as any).cardGradient
+        }
+        style={localStyles.badge}
+      >
+        <Text style={localStyles.badgeLabel}>{displayClass.label}</Text>
+        <Text style={localStyles.badgeClass}>
+          {displayClass.cls.emoji || "📖"} {displayClass.cls.name}
         </Text>
-      )}
+        {displayClass.cls.startTime && (
+          <Text style={localStyles.badgeTime}>
+            {displayClass.cls.startTime} – {displayClass.cls.endTime}
+          </Text>
+        )}
+      </GradientBackground>
     </Reanimated.View>
   );
 }
@@ -303,7 +313,10 @@ function UnlockSlider({ onUnlock }: { onUnlock: () => void }) {
             shadowOpacity: 0.5,
             shadowRadius: 8,
             elevation: 4,
-            boxShadow: `0px 8px 16px rgba(0,0,0,0.12)`,
+            boxShadow:
+              theme === "light"
+                ? `0px 8px 16px ${Colors.primary}`
+                : `0px 8px 16px rgba(0,0,0,0.3)`,
           },
           thumbText: {
             color: Colors.text,
@@ -363,10 +376,10 @@ export default function Index() {
           paddingTop: 30,
           paddingBottom: 40,
           overflow: "hidden",
-          shadowColor: "#000",
+          shadowColor: theme === "light" ? "#ffffff" : "#000000",
           shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.7,
-          shadowRadius: 20,
+          shadowOpacity: 1,
+          shadowRadius: 30,
           elevation: 8,
           boxShadow: `0px -4px 20px rgba(0,0,0,0.12)`,
         },
