@@ -399,6 +399,12 @@ export default function Index() {
         buttonText: { color: Colors.text, fontWeight: "700", fontSize: 16 },
         secondary: { width: "100%", padding: 16, alignItems: "center" },
         secondaryText: { color: Colors.muted, fontSize: 16 },
+        contentArea: {
+          flex: 1,
+          width: "100%",
+          justifyContent: "space-between",
+          paddingBottom: 8,
+        },
       }),
     [theme],
   );

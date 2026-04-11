@@ -1,0 +1,218 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper predicates
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Check that the user's index doc exists
+    function userIndexExists() {
+      return isAuthenticated() && get(/databases/$(database)/documents/userIndex/$(request.auth.uid)).exists();
+    }
+
+    // Verify that the authenticated user's userIndex.schoolId matches the provided schoolId
+    function belongsToSchool(schoolId) {
+      return isAuthenticated()
+        && userIndexExists()
+        && get(/databases/$(database)/documents/userIndex/$(request.auth.uid)).data.schoolId == schoolId;
+    }
+
+    // Post payload validator: supports text and event posts, allows optional authorName and imageUrl
+    function isValidPostPayload() {
+      // Text post variant
+      let textPost =
+        request.resource.data.type == "text"
+        && request.resource.data.keys().hasOnly(['text','authorId','authorName','createdAt','type'])
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 2000
+        && (request.resource.data.authorName is string && request.resource.data.authorName.size() <= 100)
+        && (request.resource.data.createdAt is timestamp || request.resource.data.createdAt is number);
+
+      // Event post variant
+      let eventPost =
+        request.resource.data.type == "event"
+        && request.resource.data.keys().hasOnly(['text','authorId','authorName','createdAt','type','event','imageUrl'])
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 500
+        && (request.resource.data.authorName is string && request.resource.data.authorName.size() <= 100)
+        && (request.resource.data.createdAt is timestamp || request.resource.data.createdAt is number)
+        && request.resource.data.event is map
+        && request.resource.data.event.keys().hasOnly(['name','dateKey','startTime','endTime','details'])
+        && request.resource.data.event.name is string
+        && request.resource.data.event.name.size() <= 120
+        && request.resource.data.event.dateKey is string
+        && request.resource.data.event.startTime is string
+        && request.resource.data.event.endTime is string;
+
+      return textPost || eventPost;
+    }
+
+    // Reaction/reply validator
+    function isValidReactionPayload() {
+      return request.resource.data.keys().hasOnly(['text','authorId','authorName','type','createdAt'])
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 500
+        && (request.resource.data.createdAt is timestamp || request.resource.data.createdAt is number)
+        && (request.resource.data.authorName is string && request.resource.data.authorName.size() <= 100);
+    }
+
+    // Message validator for class/club chat messages
+    function isValidMessagePayload() {
+      return request.resource.data.keys().hasOnly(['text','authorId','authorName','createdAt','imageUrl'])
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 2000
+        && (request.resource.data.createdAt is timestamp || request.resource.data.createdAt is number)
+        && (request.resource.data.authorName is string && request.resource.data.authorName.size() <= 100);
+    }
+
+    // USER INDEX
+    match /userIndex/{userId} {
+      // Creation: only the owner may create their index and the school referenced must exist
+      allow create: if isOwner(userId)
+                    && request.resource.data.uid == userId
+                    && request.resource.data.schoolId is string
+                    && request.resource.data.schoolId.size() > 0
+                    && get(/databases/$(database)/documents/schools/$(request.resource.data.schoolId)).exists();
+
+      // Owner-only read/write/delete
+      allow read, update, delete: if isOwner(userId);
+
+      // Personal calendar events under userIndex/{userId}/calendarEvents/{eventId}
+      match /calendarEvents/{eventId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // SCHOOLS (top-level)
+    match /schools/{schoolId} {
+      // Allow read for onboarding/search
+      allow read: if isAuthenticated();
+
+      // Restrict creation to reasonable schema (prefer server-side creation in production)
+      allow create: if isAuthenticated()
+                    && request.resource.data.keys().hasOnly(['name','nameLower','city','createdAt'])
+                    && request.resource.data.name is string
+                    && request.resource.data.nameLower is string
+                    && request.resource.data.city is string
+                    && request.resource.data.createdAt == request.time;
+
+      // Only school members may update or delete
+      allow update, delete: if belongsToSchool(schoolId);
+    }
+
+    // SCHOOLS/{schoolId}/users/{userId}
+    match /schools/{schoolId}/users/{userId} {
+      allow read: if isOwner(userId) || belongsToSchool(schoolId);
+      allow create: if isOwner(userId) && request.resource.data.uid == userId;
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    // POSTS (school feed)
+    match /schools/{schoolId}/posts/{postId} {
+      allow read: if belongsToSchool(schoolId);
+
+      allow create: if belongsToSchool(schoolId) && isValidPostPayload();
+
+      allow update: if belongsToSchool(schoolId)
+                    // prevent changing authorId and ensure updated content is valid
+                    && resource.data.authorId == request.resource.data.authorId
+                    && request.resource.data.authorId == request.auth.uid
+                    && (request.resource.data.text is string && request.resource.data.text.size() <= 2000);
+
+      allow delete: if belongsToSchool(schoolId) && resource.data.authorId == request.auth.uid;
+
+      // Reactions / replies subcollection
+      match /reactions/{reactionId} {
+        allow read: if belongsToSchool(schoolId);
+        allow create: if belongsToSchool(schoolId)
+                      && isValidReactionPayload()
+                      // ensure parent post exists
+                      && get(/databases/$(database)/documents/schools/$(schoolId)/posts/$(postId)).exists();
+        allow update, delete: if belongsToSchool(schoolId) && resource.data.authorId == request.auth.uid;
+      }
+
+      // Responses (event RSVP) — doc id typically is responder uid
+      match /responses/{responderId} {
+        allow read: if belongsToSchool(schoolId);
+        allow create: if belongsToSchool(schoolId) && request.auth.uid == responderId;
+        allow update, delete: if belongsToSchool(schoolId) && request.auth.uid == responderId;
+      }
+
+      // Reports meta subcollection (lightweight reporting)
+      match /reports/{reportId} {
+        allow create: if belongsToSchool(schoolId) && request.resource.data.reporterId == request.auth.uid
+                      && request.resource.data.createdAt is number;
+        allow read: if belongsToSchool(schoolId);
+        allow delete: if false; // reports are append-only (handled by server-side cleanup)
+      }
+    }
+
+    // CLASSES
+    match /schools/{schoolId}/classes/{classId} {
+      allow read: if belongsToSchool(schoolId);
+
+      allow create: if belongsToSchool(schoolId)
+                    && request.resource.data.keys().hasOnly(['name','nameLower','teacher','teacherLower','period','periodLower','emoji','startTime','endTime','createdAt'])
+                    && request.resource.data.createdAt == request.time;
+
+      allow update, delete: if belongsToSchool(schoolId);
+
+      match /members/{memberId} {
+        allow read: if belongsToSchool(schoolId);
+        allow create: if isOwner(memberId) && belongsToSchool(schoolId);
+        allow update, delete: if isOwner(memberId) && belongsToSchool(schoolId);
+      }
+
+      match /messages/{messageId} {
+        allow read: if belongsToSchool(schoolId);
+        allow create: if belongsToSchool(schoolId) && isValidMessagePayload();
+        allow update: if belongsToSchool(schoolId) && resource.data.authorId == request.resource.data.authorId && request.resource.data.authorId == request.auth.uid;
+        allow delete: if belongsToSchool(schoolId) && resource.data.authorId == request.auth.uid;
+      }
+    }
+
+    // CLUBS (mirror of classes)
+    match /schools/{schoolId}/clubs/{clubId} {
+      allow read: if belongsToSchool(schoolId);
+      allow create, update, delete: if belongsToSchool(schoolId);
+
+      match /members/{memberId} {
+        allow read: if belongsToSchool(schoolId);
+        allow create, delete: if isOwner(memberId) && belongsToSchool(schoolId);
+      }
+
+      match /messages/{messageId} {
+        allow read: if belongsToSchool(schoolId);
+        allow create: if belongsToSchool(schoolId) && isValidMessagePayload();
+        allow update, delete: if belongsToSchool(schoolId) && resource.data.authorId == request.auth.uid;
+      }
+    }
+
+    // Bell schedule templates
+    match /schools/{schoolId}/bellSchedules/{scheduleId} {
+      allow read: if belongsToSchool(schoolId);
+      allow create, update, delete: if belongsToSchool(schoolId);
+    }
+
+    match /schools/{schoolId}/dailySchedule/{docId} {
+      allow read: if belongsToSchool(schoolId);
+      allow create, update, delete: if belongsToSchool(schoolId);
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
