@@ -57,11 +57,13 @@ export default function SignUp() {
   };
 
   return (
-    <View style={styles.container}>
+    <Screen contentStyle={{ justifyContent: "center", padding: 24 }}>
       <Image
         source={require("../../assets/images/Sera logo B.png")}
         style={styles.logo}
         resizeMode="contain"
+        accessible
+        accessibilityLabel="Sera logo"
       />
       <Text style={styles.tagline}>Join your school.</Text>
       <TextInput
@@ -72,6 +74,7 @@ export default function SignUp() {
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
+        accessibilityLabel="Email"
       />
       <TextInput
         style={classstyles.input}
@@ -80,22 +83,25 @@ export default function SignUp() {
         value={password}
         onChangeText={setPassword}
         secureTextEntry
+        accessibilityLabel="Password"
       />
-      <TouchableOpacity style={styles.button} onPress={handleSignUp}>
+      <PressableScale style={styles.button} onPress={handleSignUp} accessibilityRole="button" accessibilityLabel="Create account">
         <Text style={styles.buttonText}>Create Account</Text>
-      </TouchableOpacity>
+      </PressableScale>
       {Platform.OS !== "android" && (
-        <TouchableOpacity
+        <PressableScale
           style={styles.googleButton}
           onPress={() => promptAsync()}
+          accessibilityRole="button"
+          accessibilityLabel="Continue with Google"
         >
           <Text style={styles.googleButtonText}>Continue with Google</Text>
-        </TouchableOpacity>
+        </PressableScale>
       )}
-      <TouchableOpacity onPress={() => router.push("/(auth)/sign-in" as any)}>
+      <PressableScale onPress={() => router.push("/(auth)/sign-in" as any)} accessibilityRole="link" accessibilityLabel="Sign in">
         <Text style={styles.link}>Already have an account? Sign in</Text>
-      </TouchableOpacity>
-    </View>
+      </PressableScale>
+    </Screen>
   );
 }
 

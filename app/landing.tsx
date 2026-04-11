@@ -350,12 +350,6 @@ export default function Index() {
   const stylesMemo = useMemo(
     () =>
       StyleSheet.create({
-        container: {
-          flex: 1,
-          backgroundColor: Colors.background,
-          overflow: "hidden",
-          height: "100%",
-        },
         orangeBlob: {
           position: "absolute",
           top: 0,
@@ -383,7 +377,6 @@ export default function Index() {
           elevation: 8,
           boxShadow: `0px -4px 20px rgba(0,0,0,0.12)`,
         },
-        contentArea: { flex: 1 },
         logo: { width: 130, height: 120, marginBottom: 24 },
         messageBox: { flex: 1, justifyContent: "flex-end", marginBottom: 32 },
         welcomeText: {
@@ -451,7 +444,7 @@ export default function Index() {
   };
 
   return (
-    <View style={stylesMemo.container}>
+    <View style={{ flex: 1 }}>
       {/* Orange cutout background */}
       <View style={stylesMemo.orangeBlob} />
 
@@ -469,6 +462,8 @@ export default function Index() {
             }
             style={stylesMemo.logo}
             resizeMode="contain"
+            accessible
+            accessibilityLabel="Sera logo"
           />
 
           {/* Greeting */}
@@ -497,12 +492,16 @@ export default function Index() {
               <PressableScale
                 style={stylesMemo.button}
                 onPress={() => router.push("/(auth)/sign-up")}
+                accessibilityRole="button"
+                accessibilityLabel="Get started"
               >
                 <Text style={stylesMemo.buttonText}>Get Started</Text>
               </PressableScale>
               <PressableScale
                 style={stylesMemo.secondary}
                 onPress={() => router.push("/(auth)/sign-in")}
+                accessibilityRole="button"
+                accessibilityLabel="Log in"
               >
                 <Text style={stylesMemo.secondaryText}>Log In</Text>
               </PressableScale>
