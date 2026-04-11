@@ -132,6 +132,8 @@ export default function SignIn() {
         source={require("../../assets/images/Sera logo B.png")}
         style={styles.logo}
         resizeMode="contain"
+        accessible
+        accessibilityLabel="Sera logo"
       />
 
       <Text style={styles.tagline}>Your school, all in one place.</Text>
@@ -144,6 +146,7 @@ export default function SignIn() {
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
+        accessibilityLabel="Email"
       />
 
       <TextInput
@@ -153,9 +156,10 @@ export default function SignIn() {
         value={password}
         onChangeText={setPassword}
         secureTextEntry
+        accessibilityLabel="Password"
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleEmailSignIn}>
+      <TouchableOpacity style={styles.button} onPress={handleEmailSignIn} accessibilityRole="button" accessibilityLabel="Sign in">
         <Text style={styles.buttonText}>Sign In</Text>
       </TouchableOpacity>
 
@@ -163,12 +167,14 @@ export default function SignIn() {
         <TouchableOpacity
           style={styles.googleButton}
           onPress={() => promptAsync()}
+          accessibilityRole="button"
+          accessibilityLabel="Continue with Google"
         >
           <Text style={styles.googleButtonText}>Continue with Google</Text>
         </TouchableOpacity>
       )}
 
-      <TouchableOpacity onPress={() => router.push("/(auth)/sign-up" as any)}>
+      <TouchableOpacity onPress={() => router.push("/(auth)/sign-up" as any)} accessibilityRole="link" accessibilityLabel="Sign up">
         <Text style={styles.link}>Don&apos;t have an account? Sign up</Text>
       </TouchableOpacity>
     </View>

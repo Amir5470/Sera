@@ -71,16 +71,41 @@ export function usePressScale() {
 export function PressableScale(
   props: PressableProps & { style?: StyleProp<ViewStyle>; children: ReactNode },
 ) {
-  const { style, onPressIn, onPressOut, ...rest } = props;
+  // Normalize and forward accessibility props. Provide safe defaults so
+  // consumers don't need to remember them for every Pressable.
+  const {
+    style,
+    onPress,
+    onPressIn,
+    onPressOut,
+    accessibilityRole,
+    accessible,
+    accessibilityLabel,
+    accessibilityHint,
+    accessibilityState,
+    ...rest
+  } = props;
+
   const {
     animatedStyle,
     onPressIn: internalPressIn,
     onPressOut: internalPressOut,
   } = usePressScale();
 
+  // Default role: if this pressable has an onPress handler and no explicit
+  // accessibilityRole was provided, mark it as a button for assistive tech.
+  const role = accessibilityRole ?? (onPress ? "button" : undefined);
+  const isAccessible = accessible ?? true;
+
   return (
     <AnimatedPressable
       {...rest}
+      onPress={onPress}
+      accessibilityRole={role as any}
+      accessible={isAccessible}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={accessibilityState}
       onPressIn={(event) => {
         internalPressIn();
         onPressIn?.(event);
