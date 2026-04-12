@@ -1,7 +1,7 @@
-import React from "react";
-import { View, Text, StyleProp, ViewStyle, StyleSheet } from "react-native";
 import { classstyles } from "@/constants/styles";
 import { useAccessibility } from "@/hooks/useAccessibility";
+import React from "react";
+import { StyleProp, View, ViewStyle } from "react-native";
 
 export default function Screen({
   title,
@@ -27,9 +27,6 @@ export default function Screen({
       <View style={[classstyles.listContent, contentStyle]}>{children}</View>
       {/* Simple inline style adjustment for scaling large text (consumers should
           use relative font sizes where possible). */}
-      <StyleSheet>
-        {`/* placeholder to indicate where scaling would be applied */`}
-      </StyleSheet>
     </View>
   );
 }

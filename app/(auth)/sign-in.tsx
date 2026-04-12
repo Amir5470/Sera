@@ -1,4 +1,3 @@
-import { classstyles } from "@/constants/styles";
 import * as Google from "expo-auth-session/providers/google";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -139,7 +138,7 @@ export default function SignIn() {
       <Text style={styles.tagline}>Your school, all in one place.</Text>
 
       <TextInput
-        style={classstyles.input}
+        style={styles.input}
         placeholder="Email"
         placeholderTextColor={Colors.muted}
         value={email}
@@ -150,7 +149,7 @@ export default function SignIn() {
       />
 
       <TextInput
-        style={classstyles.input}
+        style={styles.input}
         placeholder="Password"
         placeholderTextColor={Colors.muted}
         value={password}
@@ -159,7 +158,12 @@ export default function SignIn() {
         accessibilityLabel="Password"
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleEmailSignIn} accessibilityRole="button" accessibilityLabel="Sign in">
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleEmailSignIn}
+        accessibilityRole="button"
+        accessibilityLabel="Sign in"
+      >
         <Text style={styles.buttonText}>Sign In</Text>
       </TouchableOpacity>
 
@@ -174,7 +178,11 @@ export default function SignIn() {
         </TouchableOpacity>
       )}
 
-      <TouchableOpacity onPress={() => router.push("/(auth)/sign-up" as any)} accessibilityRole="link" accessibilityLabel="Sign up">
+      <TouchableOpacity
+        onPress={() => router.push("/(auth)/sign-up" as any)}
+        accessibilityRole="link"
+        accessibilityLabel="Sign up"
+      >
         <Text style={styles.link}>Don&apos;t have an account? Sign up</Text>
       </TouchableOpacity>
     </View>

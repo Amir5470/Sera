@@ -1,10 +1,10 @@
 import { PressableScale } from "@/components/animated-helpers";
-import { classstyles } from "@/constants/styles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, View } from "react-native";
 import { Colors } from "../../constants/colors";
+import { classstyles } from "../../constants/styles";
 
 export default function Step2() {
   const router = useRouter();
@@ -134,7 +134,7 @@ export default function Step2() {
 
       <View style={styles.inputContainer}>
         <TextInput
-          style={classstyles.input}
+          style={styles.input}
           placeholder="MM/DD/YYYY"
           placeholderTextColor={Colors.muted}
           keyboardType="number-pad"

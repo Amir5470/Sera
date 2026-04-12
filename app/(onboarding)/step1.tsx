@@ -58,14 +58,14 @@ export default function Step1() {
         This is how you&apos;ll appear to your school.
       </Text>
       <TextInput
-        style={classstyles.input}
+        style={styles.input}
         placeholder="Display name (e.g. John Doe)"
         placeholderTextColor={Colors.muted}
         value={displayName}
         onChangeText={setDisplayName}
       />
       <TextInput
-        style={classstyles.input}
+        style={styles.input}
         placeholder="Username (e.g. CoolKid123)"
         placeholderTextColor={Colors.muted}
         value={username}

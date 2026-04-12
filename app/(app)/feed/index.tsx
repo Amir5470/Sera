@@ -7,6 +7,7 @@ import { Post, useFeed } from "@/hooks/useFeed";
 import { useProfile } from "@/hooks/useProfile";
 import { useReplies } from "@/hooks/useReplies";
 import { useTheme } from "@/hooks/useTheme";
+import { useRouter, useSegments } from "expo-router";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
 import { successNotification } from "@/lib/haptics";
 import {
@@ -20,6 +21,8 @@ import {
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import React, { useMemo, useState } from "react";
+import Toast from "@/components/ui/Toast";
+import NoSchoolState from "@/components/ui/NoSchoolState";
 import {
   ActivityIndicator,
   Alert,
@@ -512,9 +515,45 @@ function PostCard({
 
 export default function FeedScreen() {
   const { user } = useAuth();
-  const { profile } = useProfile();
+  const { profile, loading: profileLoading } = useProfile();
+  // If profile is still loading, keep a local flag to show spinner instead of redirecting
   const { theme } = useTheme();
+  const router = useRouter();
+  const segments = useSegments();
   const { posts, loading } = useFeed(profile?.schoolId);
+
+  // Local toast state for non-blocking notifications
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  // Guard: if user is logged in but profile exists and onboardingComplete is false,
+  // root layout sends user into onboarding step1. Here we specifically ensure users
+  // without a schoolId are redirected to onboarding step3 to select a school.
+  // Use a small loading state to avoid flash and provide a smooth transition.
+  React.useEffect(() => {
+    // If profile is still loading, do nothing here. useProfile in this file provides profileLoading.
+    if (profileLoading) return;
+
+    // If there is a user but no schoolId, navigate to step3 or settings (replace so back doesn't loop)
+    if (user && profile && !profile.schoolId) {
+      // If we're already on an onboarding route, don't redirect (prevents loop)
+      const firstSegment = segments?.[0];
+      const inOnboarding = firstSegment === "(onboarding)";
+      if (!inOnboarding) {
+        // Non-blocking toast explaining why
+        setToastMessage("To join your school community, pick your school now.");
+        setToastVisible(true);
+        setTimeout(() => setToastVisible(false), 1500);
+        // Avoid redirect loop: if onboardingComplete is true but schoolId missing,
+        // send user to settings edit-school instead of onboarding step3.
+        if (profile.onboardingComplete) {
+          router.replace("/(app)/settings/edit-school" as any);
+        } else {
+          router.replace("/(onboarding)/step3" as any);
+        }
+      }
+    }
+  }, [user, profile, profileLoading, router, segments]);
   const [text, setText] = useState("");
   const [posting, setPosting] = useState(false);
   const [eventModalVisible, setEventModalVisible] = useState(false);
@@ -573,6 +612,23 @@ export default function FeedScreen() {
         },
         buttonDisabled: { opacity: 0.4 },
         buttonText: { color: "#fff", fontWeight: "600", fontSize: 15 },
+        // Toast styles used by the non-blocking notification when redirecting
+        toast: {
+          position: "absolute",
+          bottom: 48,
+          alignSelf: "center",
+          backgroundColor: Colors.card,
+          borderRadius: 20,
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          borderWidth: 1,
+          borderColor: Colors.border,
+          elevation: 6,
+        },
+        toastText: { color: Colors.text, fontWeight: "600", fontSize: 14 },
       }),
     [theme],
   );
@@ -702,34 +758,42 @@ export default function FeedScreen() {
         <Text style={styles.headerText}>Feed</Text>
       </View>
 
-      <View style={styles.composer}>
-        <TextInput
-          style={classstyles.input}
-          placeholder="What's happening at school?"
-          placeholderTextColor={Colors.muted}
-          value={text}
-          onChangeText={setText}
-          multiline
-        />
-        <View
-          style={{
-            flexDirection: "row",
-            gap: 8,
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <SendButton onPress={submit} disabled={!text.trim() || posting}>
-            Post
-          </SendButton>
-          <SendButton
-            onPress={() => setEventModalVisible(true)}
-            disabled={posting}
+      {/* Composer: only show when user has a school selected */}
+      {profile?.schoolId ? (
+        <View style={styles.composer}>
+          <TextInput
+            style={classstyles.input}
+            placeholder="What's happening at school?"
+            placeholderTextColor={Colors.muted}
+            value={text}
+            onChangeText={setText}
+            multiline
+          />
+          <View
+            style={{
+              flexDirection: "row",
+              gap: 8,
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
           >
-            Share Event
-          </SendButton>
+            <SendButton onPress={submit} disabled={!text.trim() || posting}>
+              Post
+            </SendButton>
+            <SendButton
+              onPress={() => setEventModalVisible(true)}
+              disabled={posting}
+            >
+              Share Event
+            </SendButton>
+          </View>
         </View>
-      </View>
+      ) : (
+        <NoSchoolState
+          onSearch={() => router.replace("/(onboarding)/step3" as any)}
+          onCreate={() => console.log("Create School triggered")}
+        />
+      )}
 
       {loading ? (
         <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
@@ -758,6 +822,13 @@ export default function FeedScreen() {
             </Text>
           }
         />
+      )}
+
+      {/* Toast for non-blocking redirect notice */}
+      {toastVisible && (
+        <View style={styles.toast} pointerEvents="none">
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
       )}
 
       <Modal

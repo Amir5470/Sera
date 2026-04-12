@@ -29,6 +29,7 @@ export default function EditSchool() {
   const [grade, setGrade] = useState("");
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(false);
+  // TODO: replace local toast with shared Toast component
   const [suggestions, setSuggestions] = useState<
     { id: string; name: string; city: string }[]
   >([]);

@@ -77,12 +77,22 @@ service cloud.firestore {
 
     // USER INDEX
     match /userIndex/{userId} {
-      // Creation: only the owner may create their index and the school referenced must exist
+      // Creation: allow owner to create an initial profile record. Onboarding
+      // may save a partial index (displayName/username) before the user picks
+      // a school. If `schoolId` is provided at creation time, the referenced
+      // school must exist.
       allow create: if isOwner(userId)
                     && request.resource.data.uid == userId
-                    && request.resource.data.schoolId is string
-                    && request.resource.data.schoolId.size() > 0
-                    && get(/databases/$(database)/documents/schools/$(request.resource.data.schoolId)).exists();
+                    && (
+                      // Onboarding partial create: only uid/displayName/username
+                      (request.resource.data.keys().hasOnly(['uid','displayName','username']))
+                      // OR full create with schoolId that exists
+                      || (
+                        request.resource.data.schoolId is string
+                        && request.resource.data.schoolId.size() > 0
+                        && get(/databases/$(database)/documents/schools/$(request.resource.data.schoolId)).exists()
+                      )
+                    );
 
       // Owner-only read/write/delete
       allow read, update, delete: if isOwner(userId);

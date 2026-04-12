@@ -1,10 +1,12 @@
 import { classstyles } from "@/constants/styles";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { doc, getDoc } from "firebase/firestore";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../../constants/colors";
 import { useAuth } from "../../hooks/useAuth";
 import { useProfile } from "../../hooks/useProfile";
+import { db } from "../../lib/firebase";
 import { completeOnboarding, saveProfileIndex } from "../../lib/profile";
 
 const NOTIFICATIONS = [
@@ -43,6 +45,22 @@ export default function Step5() {
     setLoading(true);
     await saveProfileIndex(user.uid, { notifications, heardFrom });
     await completeOnboarding(user.uid, profile.schoolId);
+    // Wait until the server-visible `userIndex` doc includes the schoolId
+    // to avoid a race where the feed's realtime listener is evaluated by
+    // security rules before the index exists, which causes permission errors.
+    const timeout = 10000; // ms
+    const interval = 500; // ms
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      try {
+        const snap = await getDoc(doc(db, "userIndex", user.uid));
+        if (snap.exists() && snap.data()?.schoolId === profile.schoolId) break;
+      } catch (e) {
+        // ignore and retry
+      }
+      await new Promise((res) => setTimeout(res, interval));
+    }
+
     if (isEdit) {
       router.replace("/(app)/settings" as any);
     } else {

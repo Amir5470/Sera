@@ -20,14 +20,15 @@ import { useBellSchedules } from "../../hooks/useBellSchedules";
 import { useClassRooms } from "../../hooks/useClassRooms";
 import { useProfile } from "../../hooks/useProfile";
 import { useTheme } from "../../hooks/useTheme";
+import { extractClasses, extractTimes } from "../../lib/ai";
 import { BellPeriod, voteForSchedule } from "../../lib/bellSchedules";
 import { joinOrCreateClass, leaveClass } from "../../lib/classes";
 import fetchWithLimit from "../../lib/fetchWithLimit";
 import { successNotification } from "../../lib/haptics";
 import { sanitizeObjectPayload } from "../../lib/inputSanitizer";
 
-const CLAUDE_MODEL = "claude-3-5-haiku-20241022";
-const ANTHROPIC_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_KEY!;
+// AI provider functions (extractClasses, extractTimes) are in lib/ai and
+// selected via EXPO_PUBLIC_AI_PROVIDER (default: 'anthropic').
 const PERIOD_OPTIONS = Array.from({ length: 9 }, (_, i) => {
   const period = i + 1;
   const suffix =
@@ -171,62 +172,7 @@ const uriToBase64 = async (uri: string): Promise<string> => {
     reader.readAsDataURL(blob);
   });
 };
-
-const callClaude = async (base64: string, prompt: string) => {
-  const response = await fetchWithLimit(
-    "https://api.anthropic.com/v1/messages",
-    {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 1000,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: "image/jpeg",
-                  data: base64,
-                },
-              },
-              { type: "text", text: prompt },
-            ],
-          },
-        ],
-      }),
-    },
-  );
-  if (!response.ok) throw new Error(`API ${response.status}`);
-  const data = await response.json();
-  const raw = data.content[0].text;
-  const start = raw.indexOf("[");
-  const end = raw.lastIndexOf("]");
-  if (start === -1 || end === -1) throw new Error("No JSON array found");
-  return JSON.parse(raw.substring(start, end + 1));
-};
-
-const extractClasses = async (base64: string): Promise<ScannedClass[]> =>
-  callClaude(
-    base64,
-    `Extract all entries from this school schedule image. Determine if each is a regular academic class or extracurricular club.
-    Return ONLY a JSON array. Format: [{"name":"Class Name","teacher":"Teacher Name","period":"3rd","emoji":"📚","type":"class"}]
-    Use type "class" for academic subjects. Use type "club" for extracurriculars, electives, or activities.`,
-  );
-
-const extractTimes = async (base64: string): Promise<PeriodTime[]> =>
-  callClaude(
-    base64,
-    `Extract the bell schedule / period times from this image. Return ONLY a JSON array. Format: [{"period":"1st","startTime":"08:40","endTime":"09:30"}]`,
-  );
+// AI-powered extraction is provided by lib/ai.ts (extractClasses, extractTimes).
 
 const mergeTimes = (
   classes: ScannedClass[],

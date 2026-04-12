@@ -1,9 +1,10 @@
-import { classstyles } from "@/constants/styles";
+import { PressableScale } from "@/components/animated-helpers";
+import { useTheme } from "@/hooks/useTheme";
 import * as Google from "expo-auth-session/providers/google";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Alert,
   Image,
@@ -11,7 +12,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { Colors } from "../../constants/colors";
@@ -25,7 +25,71 @@ export default function SignUp() {
   const [password, setPassword] = useState("");
   const router = useRouter();
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
+  const { theme } = useTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: Colors.background2,
+          justifyContent: "center",
+          padding: 24,
+        },
+        logo: {
+          width: "100%",
+          height: 80,
+          marginBottom: 8,
+        },
+        tagline: {
+          color: Colors.muted,
+          textAlign: "center",
+          marginBottom: 40,
+        },
+        input: {
+          backgroundColor: Colors.card,
+          color: Colors.text,
+          padding: 16,
+          borderRadius: 12,
+          marginBottom: 12,
+          borderWidth: 1,
+          borderColor: Colors.border,
+        },
+        button: {
+          backgroundColor: Colors.primary,
+          padding: 16,
+          borderRadius: 12,
+          alignItems: "center",
+          marginTop: 8,
+        },
+        buttonText: {
+          color: Colors.text,
+          fontWeight: "bold",
+          fontSize: 16,
+        },
+        googleButton: {
+          backgroundColor: Colors.card,
+          padding: 16,
+          borderRadius: 12,
+          alignItems: "center",
+          marginTop: 12,
+          borderWidth: 1,
+          borderColor: Colors.border,
+        },
+        googleButtonText: {
+          color: Colors.text,
+          fontWeight: "bold",
+          fontSize: 16,
+        },
+        link: {
+          color: Colors.muted,
+          textAlign: "center",
+          marginTop: 20,
+        },
+      }),
+    [theme],
+  );
+
+  const [_request, _response, promptAsync] = Google.useAuthRequest({
     iosClientId:
       "608393229921-8nvoncoq09k3tae8d0lii7j16nbtd645.apps.googleusercontent.com",
     webClientId:
@@ -57,7 +121,7 @@ export default function SignUp() {
   };
 
   return (
-    <Screen contentStyle={{ justifyContent: "center", padding: 24 }}>
+    <View style={styles.container}>
       <Image
         source={require("../../assets/images/Sera logo B.png")}
         style={styles.logo}
@@ -67,7 +131,7 @@ export default function SignUp() {
       />
       <Text style={styles.tagline}>Join your school.</Text>
       <TextInput
-        style={classstyles.input}
+        style={styles.input}
         placeholder="Email"
         placeholderTextColor={Colors.muted}
         value={email}
@@ -77,7 +141,7 @@ export default function SignUp() {
         accessibilityLabel="Email"
       />
       <TextInput
-        style={classstyles.input}
+        style={styles.input}
         placeholder="Password"
         placeholderTextColor={Colors.muted}
         value={password}
@@ -85,61 +149,31 @@ export default function SignUp() {
         secureTextEntry
         accessibilityLabel="Password"
       />
-      <PressableScale style={styles.button} onPress={handleSignUp} accessibilityRole="button" accessibilityLabel="Create account">
-        <Text style={styles.buttonText}>Create Account</Text>
+      <PressableScale
+        style={styles.button}
+        onPress={handleSignUp}
+        accessibilityRole="button"
+        accessibilityLabel="Create account"
+      >
+        <Text style={styles.buttonText}>Sign Up</Text>
       </PressableScale>
       {Platform.OS !== "android" && (
         <PressableScale
           style={styles.googleButton}
-          onPress={() => promptAsync()}
+          onPress={handleGoogleSignUp}
           accessibilityRole="button"
           accessibilityLabel="Continue with Google"
         >
           <Text style={styles.googleButtonText}>Continue with Google</Text>
         </PressableScale>
       )}
-      <PressableScale onPress={() => router.push("/(auth)/sign-in" as any)} accessibilityRole="link" accessibilityLabel="Sign in">
+      <PressableScale
+        onPress={() => router.push("/(auth)/sign-in" as any)}
+        accessibilityRole="link"
+        accessibilityLabel="Sign in"
+      >
         <Text style={styles.link}>Already have an account? Sign in</Text>
       </PressableScale>
-    </Screen>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background2,
-    justifyContent: "center",
-    padding: 24,
-  },
-  logo: { width: "100%", height: 80, marginBottom: 8 },
-  tagline: { color: Colors.muted, textAlign: "center", marginBottom: 40 },
-  input: {
-    backgroundColor: Colors.card,
-    color: Colors.text,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  button: {
-    backgroundColor: Colors.primary,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  buttonText: { color: Colors.text, fontWeight: "bold", fontSize: 16 },
-  googleButton: {
-    backgroundColor: Colors.card,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  googleButtonText: { color: Colors.text, fontWeight: "bold", fontSize: 16 },
-  link: { color: Colors.muted, textAlign: "center", marginTop: 20 },
-});

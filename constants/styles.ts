@@ -98,12 +98,14 @@ export const sharedStyles = StyleSheet.create({
     paddingBottom: 12,
     borderRadius: 24,
     fontSize: 15,
-    minHeight: 60,
+    minHeight: 30,
+    height: "auto",
     overflow: "hidden",
     borderWidth: 1,
     borderColor: Colors.primary,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
+    marginBottom: Platform.OS === "ios" ? 6 : 0,
   },
   // Primary send button used across composers
   sendButton: {
