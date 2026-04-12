@@ -11,13 +11,13 @@
 <meta property="og:url" content="https://serahq.online/">
 <meta property="og:title" content="Sera — Your school, centralized.">
 <meta property="og:description" content="Centralize your school life. Student-led coordination for schedules, chats, and campus culture.">
-<meta property="og:image" content="https://serahq.online/assets\images\OGimage.png">
+<meta property="og:image" content="https://serahq.online/assets/images/OGimage.png">
 
 <meta property="twitter:card" content="summary_large_image">
 <meta property="twitter:url" content="https://serahq.online/">
 <meta property="twitter:title" content="Sera — Your school, centralized.">
 <meta property="twitter:description" content="The heartbeat of your campus. Real-time updates and zero-effort class coordination.">
-<meta property="twitter:image" content="https://serahq.online/assets\images\OGimage.png">
+<meta property="twitter:image" content="https://serahq.online/assets/images/OGimage.png">
 
 <meta name="theme-color" content="#F97316">
 <link rel="icon" type="image/png" href="/assets/icon.png">
@@ -388,12 +388,12 @@
         const chatcanvas = document.getElementById("chatCanvas");
         const clubcanvas = document.getElementById("clubCanvas");
         const wrap = document.getElementById("visualWrap");
-        const renderer = new THREE.WebGLRenderer({
-          herocanvas,
-          alpha: true,
-          antialias: true,
-        });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+ const renderer = new THREE.WebGLRenderer({
+  canvas: herocanvas,
+  alpha: true,
+  antialias: true,
+});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
