@@ -49,6 +49,27 @@ Sera replaces all of it.
 
 ---
 
+## Navigation Flow
+
+The app's navigation flow is implemented in app/(app)/_layout.tsx and guarded across the app by profile state checks. High-level flow:
+
+- index.tsx (splash) → landing.tsx
+  - if not logged in → (auth)/sign-in or sign-up
+  - if logged in but onboarding incomplete → (onboarding)/step1
+  - if logged in + onboarding complete → (app)/feed
+
+Security-driven partial-state handling (new)
+
+- To prevent "inconsistent state" redirect loops discovered by a Security Auditor, the Feed screen now contains a guard that handles the case where a user has `onboardingComplete: true` but their `userIndex/{uid}` document is missing `schoolId`.
+  - Previously this could route users back into onboarding step3 repeatedly. The new behavior redirects such users to the Settings edit-school page so they can explicitly set their school and resolve the inconsistency.
+  - Implementation reference: app/(app)/feed/index.tsx — look for the top-level effect that checks `profile.onboardingComplete && !profile.schoolId` and calls `router.replace("/(app)/settings/edit-school")` to avoid back-button loops.
+
+QA guidance:
+
+- Add an integration test that signs in a user whose `userIndex` has `onboardingComplete: true` but no `schoolId` and assert the Feed screen performs a replace navigation to `/(app)/settings/edit-school` rather than onboarding.
+
+---
+
 ## Getting Started
 
 Sera is still in development, not avaliable for use.
