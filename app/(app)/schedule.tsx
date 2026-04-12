@@ -784,7 +784,6 @@ export default function Schedule() {
     const day = new Date().getDay();
     return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
   }, []);
-
   // Merge today's bell schedule times into the class list for display
   const sortedClasses = useMemo(() => {
     if (!classRooms || isWeekend) return []; // Return empty on weekends

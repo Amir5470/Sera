@@ -80,14 +80,11 @@
             >
           </div>
           <h1>
-            School life, organized for <span class="sunset-gradient">students</span>
+            Your school, all in <span class="sunset-gradient">one place</span>
           </h1>
           <div class="accent-underline"></div>
           <p class="lead">
-            Sera is a student-run app that simplifies school life: AI-assisted
-            schedule import, auto-generated class chat rooms, a school feed for
-            announcements, and lightweight study tools — designed for speed and
-            student privacy.
+            Schedules, class chats, and a school feed - built for students.
           </p>
 
           <div class="cta-row">
@@ -95,7 +92,7 @@
               class="btn-primary"
               onclick="location.href = '/early-access/index.html'"
             >
-              Join Beta
+              Join your school on Sera
             </button>
             <button
               class="btn-ghost"
@@ -171,9 +168,11 @@
               THE PROBLEM
             </h2>
             <p style="color: var(--muted)">
-              Students currently juggle multiple apps.
+              Students juggle too many apps:.
               <br />
-              Sera brings the core student needs into a single, lightweight app: schedules, chat, and a shared feed — with strong defaults for privacy and no DMs.
+              <li>Paper Schedules</li>
+              <li>Group chats somewhere else</li>
+              <li>Announcements get lost</li>
             </p>
           </div>
           <div style="min-width: 240px">
@@ -187,6 +186,9 @@
               </div>
             </div>
           </div>
+          <h1 style=" display: flex; justify-self: center; width: 100%; margin-top: 24px">
+            Sera puts it all in <span class="sunset-gradient">one place.</span>
+          </h1>
         </div>
       </section>
 
@@ -197,20 +199,37 @@
       <h3>Campus Feed</h3>
       <p>The heartbeat of your campus. Real-time updates and school-wide threads.</p>
     </div>
-    <div class="glass feature">
-
-      <h3>Smart Chat-rooms</h3>
-      <p>Zero-effort coordination. Group chats for every class on your list.</p>
-    </div>
-    <div class="glass feature">
-
-      <h3>AI-Powered Calendar</h3>
-      <p>Schedules, assignments, and events. All in one place.</p>
-    </div>
+    <canvas id="feedCanvas" class="feature-canvas" style="border-radius: 12px"></canvas>
   </div>
+  <div class="features-grid">
+    <canvas id="scheduleCanvas" class="feature-canvas" style="border-radius: 12px"></canvas>
+    <div class="glass feature">
+      <h3 class="sunset-gradient">Your Timeline</h3>
+      <div id="timeline"></div>
+      <p>AI-assisted schedule import and organization, built for students.</p>
+    </div>
+      <canvas id="calendarCanvas" class="feature-canvas" style="border-radius: 12px"></canvas>
+  </div>
+  <div class="features-grid">
+          <canvas id="chatCanvas" class="feature-canvas" style="border-radius: 12px"></canvas>
+    <div class="glass feature">
+      <h3>Class Chats</h3>
+      <p>Auto-generated class chat rooms for seamless coordination.
+        <br>
+        Share notes, ask questions, and stay connected with classmates.
+        </p>
+    </div>
+    <div class="glass feature">
+      <h3>Clubs</h3>
+      <p>Connect with fellow students in your clubs and Athletic teams.
+        <br>
+        Share updates, coordinate events, and stay connected with your team.
+      </p>
+    </div>
+    <canvas id="clubCanvas" class="feature-canvas" style="border-radius: 12px"></canvas>
+  </div>
+
 </section>
-
-
       <footer>
         <div
           class="container"
@@ -259,10 +278,15 @@
       import { GLTFLoader } from "https://unpkg.com/three@0.154.0/examples/jsm/loaders/GLTFLoader.js";
 
       (function () {
-        const canvas = document.getElementById("heroCanvas");
+        const herocanvas = document.getElementById("heroCanvas");
+        const feedcanvas = document.getElementById("feedCanvas");
+        const schedulecanvas = document.getElementById("scheduleCanvas");
+        const calendarcanvas = document.getElementById("calendarCanvas");
+        const chatcanvas = document.getElementById("chatCanvas");
+        const clubcanvas = document.getElementById("clubCanvas");
         const wrap = document.getElementById("visualWrap");
         const renderer = new THREE.WebGLRenderer({
-          canvas,
+          herocanvas,
           alpha: true,
           antialias: true,
         });
@@ -386,6 +410,116 @@
           requestAnimationFrame(animate);
         }
         requestAnimationFrame(animate);
+      })();
+
+
+    </script>
+    <script>
+      (function () {
+        const ids = [
+          'feedCanvas',
+          'scheduleCanvas',
+          'calendarCanvas',
+          'chatCanvas',
+          'clubCanvas'
+        ];
+
+        function makeCanvas(id, opts = {}) {
+          const canvas = document.getElementById(id);
+          if (!canvas) return null;
+          const ctx = canvas.getContext('2d');
+          const dpr = Math.max(1, window.devicePixelRatio || 1);
+          let w = 0, h = 0;
+          let pointer = { x: 0.5, y: 0.5, active: false };
+
+          function resize() {
+            const rect = canvas.getBoundingClientRect();
+            w = Math.max(1, Math.floor(rect.width));
+            h = Math.max(1, Math.floor(rect.height));
+            canvas.width = Math.floor(w * dpr);
+            canvas.height = Math.floor(h * dpr);
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          }
+
+          function setPointerFromEvent(e) {
+            const r = canvas.getBoundingClientRect();
+            pointer.x = (e.clientX - r.left) / r.width;
+            pointer.y = (e.clientY - r.top) / r.height;
+          }
+
+          canvas.addEventListener('pointermove', (e)=>{ setPointerFromEvent(e); pointer.active = true; });
+          canvas.addEventListener('pointerleave', ()=>{ pointer.active = false; });
+          window.addEventListener('resize', resize);
+          resize();
+
+          const blobs = [];
+          const colors = opts.colors || ['#F97316', '#FFD166', '#7B2D8B'];
+          for (let i=0;i<6;i++) blobs.push({
+            x: Math.random(), y: Math.random(), r: 30+Math.random()*80, vx: (Math.random()-0.5)*0.002, vy: (Math.random()-0.5)*0.002, c: colors[i%colors.length]
+          });
+
+          function hexToRgba(hex, a){
+            const h = hex.replace('#','');
+            const bigint = parseInt(h,16);
+            const r = (bigint >> 16) & 255;
+            const g = (bigint >> 8) & 255;
+            const b = bigint & 255;
+            return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+          }
+
+          function step() {
+            ctx.clearRect(0,0,w,h);
+            const lg = ctx.createLinearGradient(0,0,w,h);
+            lg.addColorStop(0, 'rgba(255,255,255,0.01)');
+            lg.addColorStop(1, 'rgba(0,0,0,0.06)');
+            ctx.fillStyle = lg;
+            ctx.fillRect(0,0,w,h);
+
+            for (const b of blobs) {
+              if (pointer.active) {
+                const dx = pointer.x - b.x;
+                const dy = pointer.y - b.y;
+                b.vx += dx * 0.0006;
+                b.vy += dy * 0.0006;
+              } else {
+                b.vx += (0.5 - b.x) * 0.0001;
+                b.vy += (0.5 - b.y) * 0.0001;
+              }
+              b.x += b.vx;
+              b.y += b.vy;
+              b.vx *= 0.99; b.vy *= 0.99;
+
+              const cx = b.x * w;
+              const cy = b.y * h;
+              const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, b.r);
+              grd.addColorStop(0, hexToRgba(b.c, 0.85));
+              grd.addColorStop(0.5, hexToRgba(b.c, 0.25));
+              grd.addColorStop(1, 'rgba(0,0,0,0)');
+              ctx.fillStyle = grd;
+              ctx.beginPath();
+              ctx.arc(cx, cy, b.r, 0, Math.PI*2);
+              ctx.fill();
+            }
+
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            ctx.font = '600 14px Inter, system-ui';
+            ctx.textAlign = 'center';
+            ctx.fillText(opts.label || '', w/2, h - 16);
+
+            requestAnimationFrame(step);
+          }
+
+          requestAnimationFrame(step);
+          return { resize };
+        }
+
+        makeCanvas('feedCanvas', { label: 'Campus Feed', colors: ['#F97316','#FF6B35','#7B2D8B'] });
+        makeCanvas('scheduleCanvas', { label: 'Your Timeline', colors: ['#7B2D8B','#3D1C6B','#F97316'] });
+        makeCanvas('calendarCanvas', { label: 'Bell Schedules', colors: ['#FFD166','#F97316','#3D1C6B'] });
+        makeCanvas('chatCanvas', { label: 'Class Chats', colors: ['#F97316','#FFD166','#C0392B'] });
+        makeCanvas('clubCanvas', { label: 'Clubs', colors: ['#FFD166','#F97316','#7B2D8B'] });
       })();
     </script>
   </body>
