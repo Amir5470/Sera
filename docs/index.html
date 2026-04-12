@@ -291,6 +291,7 @@
         const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+        renderer.setClearColor(0x000000, 0);
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(35, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
@@ -305,25 +306,41 @@
         const group = new THREE.Group();
         scene.add(group);
 
-        // load model
+        // load model and fit camera
         loader.load(url, (gltf) => {
           const model = gltf.scene;
           model.scale.set(1.6, 1.6, 1.6);
           model.rotation.y = -0.2;
           group.add(model);
+
+          // compute bounding box and adjust camera distance
+          try {
+            const box = new THREE.Box3().setFromObject(model);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180);
+            const cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.4;
+            camera.position.set(center.x, center.y, cameraZ);
+            camera.lookAt(center);
+          } catch (err) {
+            console.warn('fit camera failed', err);
+          }
         }, undefined, (e) => console.warn('feature model load', id, e));
 
         // interactions
-        let mx = 0, my = 0;
+        const pointer = { mx: 0, my: 0 };
         function onPointerMove(e) {
           const r = canvas.getBoundingClientRect();
-          mx = ((e.clientX - r.left) / r.width - 0.5) * 2; // -1..1
-          my = ((e.clientY - r.top) / r.height - 0.5) * 2; // -1..1
+          pointer.mx = ((e.clientX - r.left) / r.width - 0.5) * 2; // -1..1
+          pointer.my = ((e.clientY - r.top) / r.height - 0.5) * 2; // -1..1
         }
         canvas.addEventListener('pointermove', onPointerMove);
-        canvas.addEventListener('pointerleave', () => { mx = 0; my = 0; });
+        canvas.addEventListener('pointerleave', () => { pointer.mx = 0; pointer.my = 0; });
 
-        scenes[id] = { scene, camera, group, renderer, canvas };
+        scenes[id] = { scene, camera, group, renderer, canvas, pointer };
         renderers[id] = renderer;
       }
 
@@ -343,9 +360,15 @@
       let time = 0;
       function animate() {
         time += 0.01;
-        Object.values(scenes).forEach(({ scene, camera, group, renderer, canvas }) => {
-          // gentle idle rotation
-          group.rotation.y += 0.004 + Math.sin(time * 0.6) * 0.0005;
+        Object.values(scenes).forEach(({ scene, camera, group, renderer, canvas, pointer }) => {
+          // gentle idle rotation + pointer influence
+          const idleY = 0.004 + Math.sin(time * 0.6) * 0.0005;
+          const targetY = (pointer?.mx || 0) * 0.35 + idleY;
+          const targetX = -(pointer?.my || 0) * 0.25 - 0.05; // slight tilt
+
+          group.rotation.y += (targetY - group.rotation.y) * 0.08;
+          group.rotation.x += (targetX - group.rotation.x) * 0.08;
+
           renderer.render(scene, camera);
         });
         requestAnimationFrame(animate);
@@ -489,117 +512,9 @@
           requestAnimationFrame(animate);
         }
         requestAnimationFrame(animate);
-      })();
+        })();
 
 
-    </script>
-    <script>
-      (function () {
-        const ids = [
-          'feedCanvas',
-          'scheduleCanvas',
-          'calendarCanvas',
-          'chatCanvas',
-          'clubCanvas'
-        ];
-
-        function makeCanvas(id, opts = {}) {
-          const canvas = document.getElementById(id);
-          if (!canvas) return null;
-          const ctx = canvas.getContext('2d');
-          const dpr = Math.max(1, window.devicePixelRatio || 1);
-          let w = 0, h = 0;
-          let pointer = { x: 0.5, y: 0.5, active: false };
-
-          function resize() {
-            const rect = canvas.getBoundingClientRect();
-            w = Math.max(1, Math.floor(rect.width));
-            h = Math.max(1, Math.floor(rect.height));
-            canvas.width = Math.floor(w * dpr);
-            canvas.height = Math.floor(h * dpr);
-            canvas.style.width = w + 'px';
-            canvas.style.height = h + 'px';
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-          }
-
-          function setPointerFromEvent(e) {
-            const r = canvas.getBoundingClientRect();
-            pointer.x = (e.clientX - r.left) / r.width;
-            pointer.y = (e.clientY - r.top) / r.height;
-          }
-
-          canvas.addEventListener('pointermove', (e)=>{ setPointerFromEvent(e); pointer.active = true; });
-          canvas.addEventListener('pointerleave', ()=>{ pointer.active = false; });
-          window.addEventListener('resize', resize);
-          resize();
-
-          const blobs = [];
-          const colors = opts.colors || ['#F97316', '#FFD166', '#7B2D8B'];
-          for (let i=0;i<6;i++) blobs.push({
-            x: Math.random(), y: Math.random(), r: 30+Math.random()*80, vx: (Math.random()-0.5)*0.002, vy: (Math.random()-0.5)*0.002, c: colors[i%colors.length]
-          });
-
-          function hexToRgba(hex, a){
-            const h = hex.replace('#','');
-            const bigint = parseInt(h,16);
-            const r = (bigint >> 16) & 255;
-            const g = (bigint >> 8) & 255;
-            const b = bigint & 255;
-            return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
-          }
-
-          function step() {
-            ctx.clearRect(0,0,w,h);
-            const lg = ctx.createLinearGradient(0,0,w,h);
-            lg.addColorStop(0, 'rgba(255,255,255,0.01)');
-            lg.addColorStop(1, 'rgba(0,0,0,0.06)');
-            ctx.fillStyle = lg;
-            ctx.fillRect(0,0,w,h);
-
-            for (const b of blobs) {
-              if (pointer.active) {
-                const dx = pointer.x - b.x;
-                const dy = pointer.y - b.y;
-                b.vx += dx * 0.0006;
-                b.vy += dy * 0.0006;
-              } else {
-                b.vx += (0.5 - b.x) * 0.0001;
-                b.vy += (0.5 - b.y) * 0.0001;
-              }
-              b.x += b.vx;
-              b.y += b.vy;
-              b.vx *= 0.99; b.vy *= 0.99;
-
-              const cx = b.x * w;
-              const cy = b.y * h;
-              const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, b.r);
-              grd.addColorStop(0, hexToRgba(b.c, 0.85));
-              grd.addColorStop(0.5, hexToRgba(b.c, 0.25));
-              grd.addColorStop(1, 'rgba(0,0,0,0)');
-              ctx.fillStyle = grd;
-              ctx.beginPath();
-              ctx.arc(cx, cy, b.r, 0, Math.PI*2);
-              ctx.fill();
-            }
-
-            ctx.fillStyle = 'rgba(255,255,255,0.9)';
-            ctx.font = '600 14px Inter, system-ui';
-            ctx.textAlign = 'center';
-            ctx.fillText(opts.label || '', w/2, h - 16);
-
-            requestAnimationFrame(step);
-          }
-
-          requestAnimationFrame(step);
-          return { resize };
-        }
-
-        makeCanvas('feedCanvas', { label: 'Campus Feed', colors: ['#F97316','#FF6B35','#7B2D8B'] });
-        makeCanvas('scheduleCanvas', { label: 'Your Timeline', colors: ['#7B2D8B','#3D1C6B','#F97316'] });
-        makeCanvas('calendarCanvas', { label: 'Bell Schedules', colors: ['#FFD166','#F97316','#3D1C6B'] });
-        makeCanvas('chatCanvas', { label: 'Class Chats', colors: ['#F97316','#FFD166','#C0392B'] });
-        makeCanvas('clubCanvas', { label: 'Clubs', colors: ['#FFD166','#F97316','#7B2D8B'] });
-      })();
-    </script>
+      </script>
   </body>
 </html>
