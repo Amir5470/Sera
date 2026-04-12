@@ -12,7 +12,11 @@
       "Bash(git checkout:*)",
       "Bash(git commit -m 'feat\\(a11y/ui\\): add Screen wrapper and refactor Landing & Sign-Up pages to use shared layout and accessibility labels:*)",
       "Bash(git push:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(curl -I -sSf https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/Phone/glTF-Binary/Phone.glb)",
+      "Bash(curl -L -o docs/models/phone.glb \"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Phone/glTF-Binary/Phone.glb\")",
+      "Bash(curl -s -H \"Authorization: Token 6b329200f7344431852b36a60c9efe5c\" \"https://api.sketchfab.com/v3/models/87fc1df741384124a8ce0226d2b2058d/download\" -o docs/models/sketchfab_download.json)",
+      "Bash(curl -L -o \"docs/models/phone.glb\" \"https://sketchfab-prod-media.s3.amazonaws.com/archives/87fc1df741384124a8ce0226d2b2058d/glb/f11c72271bb54c7a93c7979b848d09e5/iphone_17_pro_max.glb?AWSAccessKeyId=ASIAZ4EAQ242LWAKLTI5&Signature=8CeATqaQLOhXgIktTeSsZBrQw2U%3D&x-amz-security-token=IQoJb3JpZ2luX2VjEID%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCWV1LXdlc3QtMSJGMEQCID7G8R9f61bhII3vOa6wUG70T87SxaFcvyLBczJfWN2BAiBFSvCQEyN1Ke42SPoZMVLIP2JktHeOWXgNWuFr%2B%2FEeqyqxBQhJEAAaDDY3ODg3NDM3MTg5MiIM3osik6jxgIX%2Bjb3KKo4FlmzcW2yFoQt4aJIZpxF3RxkzLBgLYsjxJAwlQaU%2BORQ9Vta%2BUDmKu6dD5881ATw3sTKTU2ulZ2Fc0S0jcnyd98pCgyjKuYSmzQHgqFrjTFpG2h1WLVxTUSso7z%2Ftf765OmEGbzM0I%2Bo%2BxO3uqzcjO4Y5sWTA2hiF%2BB%2BQComZ6YrNO7w4UJed9k7%2FVKKSHs5qab%2Fi4qbeEeTu9dh3ojSd9tk8F3KsGY4DgJPg85EfDWs3T9jPpcfT6M%2Fl%2F8iAIYCPn3eG%2BIzfx5HMYjtVAHvjiuC03%2B1WSxhvVQBvx1Igq%2BQyy7LDHwQ0KNRhqVCPqt1Hgul3f9chjP9suYJplnx%2Bon3kfPc0p4EVsibNrJBHmAiIuedqSOBfrKJk6oq123rPdPVOxXYEC0%2Fr0j9m7sJxnHZSJzu%2BwTgNh%2FglGM%2BbNxx5LeDDE2UnkWecylRpwRddIM9DcZnmc9lLRPHZsm05UR3CWB6pBtXxe0JCNagDZW%2B69C5TIKhyVtiZXKP084b89OdqIgDbpyWXfBEIkGfgynNp9AI5jit9hZcONAItzhjhM%2B6EuaKssaIZfhgndo5Ron0yXrJVLWkFa4DS6WchjqtkfNapGq8ohVMDyX%2BZqkhHgGvcJIUI09AFmguF0GV3qFVivqJE%2BK9DJcLWrIeXnpYOguHs6DBt1ERIcJG5TSlEFw%2Ffeoksg3TUwzCjM4dFAirJyMly7yBZ1xvBpyF%2FhC1JH0XTF98HtM8UWVfN8FqD328ZUwgTBnGmXvbut0RDnIZUiEPd5aJXpt%2BbPqbQplBp2M6SqwIdY43yqPL%2FCbT6zAhnhcLVX9%2Fj5JCY%2BLqUanOwDNvGJyUvAaL%2BbkL0EItWx8KLcZSTg9%2B370nJMMPZ6c4GOrIBELxwc3%2BBM%2BMB1ZeqaR1yac0jYSXeSFC%2FnpSdppX1fULxCI0NDBzYE2eysFS7A3lWdSNG%2BmHZ0U5fPZi%2BdsENHydY54M1FIM%2FasI82MyxglWONZt4U%2FSRlODeAeWhAtPzKAofmTDNgJkr3pgbAd%2FOq0yy56WO51gBSG9mRofay0iVY50ibNAy0Yig9E%2Fv4qP7t9lEiWQOf8iz%2BD7AlqlsfxEM2fpMjVa%2F269SYzp2yHflnQ%3D%3D&Expires=1775924201\")"
     ]
   },
   "enableAllProjectMcpServers": true,

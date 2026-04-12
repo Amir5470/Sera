@@ -178,7 +178,9 @@ function PostCard({
         </Pressable>
       </View>
 
-      <Text style={styles.postText}>{post.text}</Text>
+      {post.text?.trim() ? (
+        <Text style={styles.postText}>{post.text}</Text>
+      ) : null}
 
       {post.type === "event" && post.event ? (
         <View
