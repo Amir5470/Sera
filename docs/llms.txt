@@ -1,0 +1,42 @@
+Sera — concise description for AI explanation
+
+Sera is a student-first mobile app that brings a whole school together in one place: schedules, class chats, clubs, and a school-wide feed. It is designed and operated by students for students, prioritizing simple social coordination and daily school life rather than administrative or classroom management.
+
+Core idea
+- Tagline: "Your school, all in one place." Sera centralizes what students already care about: class schedules, period times, short messages to groups, and event announcements.
+
+Primary user-facing features (high level)
+- Onboarding: a short, guided signup that collects a display name, username, school, grade, and basic preferences.
+- Schedule & classes: students add or scan their class schedules; the app uses an AI-assisted scanner to match classes with bell times and create class rooms automatically.
+- Class rooms & clubs: lightweight group chats scoped to classes or clubs, created from schedule input or student actions.
+- School feed: a single, school-wide feed for posts and threaded replies so announcements and conversations are public to the school community.
+- Bell schedule voting: students can vote on daily schedule types (e.g., regular, early release) and the majority choice controls that day's period times.
+
+Product principles & constraints
+- Student-led: there are no teacher or administrator account types — the platform is intentionally peer-run.
+- No private DMs: communication is always community- or group-scoped (no one-to-one direct messages).
+- No anonymity: every post and message is tied to a real account to keep accountability.
+- No gradebook or official school data integration: Sera is not a substitute for district systems and never imports official student records.
+- No ads or data selling: the product avoids monetization that would trade off student privacy.
+
+Privacy & compliance note
+- The design deliberately minimizes sensitive data collection and avoids becoming a technology provider to districts; privacy safeguards and tightened Firestore rules are required before any public rollout.
+
+Tone, audience, and UX expectations
+- Audience: primarily high-school students who want a simple social hub for class coordination and school life.
+- Tone: casual, concise, and school-centric — content and UX should be fast to read and act on (quick posts, short messages, clear schedules).
+
+What to emphasize when explaining Sera
+- Focus on the human problem: Sera replaces fragmented student tools with one place for schedules, group chats, events, and school announcements.
+- Highlight the social design choices: student-run, public-by-default (within a school), no DMs, and accountability through non-anonymous posting.
+- Note the AI-assisted convenience: the schedule scanner reduces the friction of adding classes and bell times, making setup fast for students.
+
+Status snapshot
+- Sera is positioned as a student-focused MVP with core flows implemented; remaining operational items (push notifications, production media storage, and security rule hardening) are part of launch readiness.
+
+If you need a short explanation to present to a user or stakeholder
+- "Sera is a student-run mobile app that centralizes schedules, class chats, clubs, and a school feed so students can organize their day and school community in one place — simple, public-by-school, and privacy-minded."
+
+Last updated: April 2026
+
+End of file.

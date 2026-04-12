@@ -147,6 +147,13 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.card}>
           <SettingsItem
+            icon="person-circle-outline"
+            label="Quick Profile"
+            subtext="View summary & edit"
+            onPress={() => router.push("/settings/quick-profile" as any)}
+          />
+          <View style={styles.divider} />
+          <SettingsItem
             icon="person-outline"
             label="Edit Profile"
             subtext="Name, username, grade"
@@ -205,13 +212,7 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>App</Text>
-        <View style={styles.divider} />
-        <SettingsItem
-          icon="person-circle-outline"
-          label="Quick Profile"
-          subtext="View summary & edit"
-          onPress={() => router.push("/settings/quick-profile" as any)}
-        />
+
         <View style={styles.card}>
           <SettingsItem
             icon="color-palette-outline"

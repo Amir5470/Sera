@@ -1,6 +1,191 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Sera — Early Access</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0d0a1a;
+        --primary: #f97316;
+        --secondary: #ffd166;
+        --muted: rgba(255, 255, 255, 0.45);
+        --card: #1a1530;
+        --border: rgba(255, 255, 255, 0.1);
+      }
+      body {
+        margin: 0;
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial;
+        background: var(--bg);
+        color: #fff;
+      }
+      .container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+      .glass {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.02),
+          rgba(255, 255, 255, 0.01)
+        );
+        border: 1px solid var(--border);
+        backdrop-filter: blur(8px);
+        box-shadow: 0 18px 60px rgba(2, 6, 23, 0.7);
+        border-radius: 14px;
+        padding: 20px;
+      }
+      .id-card {
+        display: flex;
+        gap: 18px;
+        align-items: center;
+      }
+      .avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 10px;
+        background: linear-gradient(180deg, var(--primary), #b45510);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        color: #000;
+      }
+      .input {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: transparent;
+        color: #fff;
+      }
+      .btn {
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+        color: #000;
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: none;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 style="font-weight: 800; margin-bottom: 8px">
+        Join Sera — Early Access
+      </h1>
+      <p class="muted">
+        Enter your email to join the beta waitlist. We'll send an invite when
+        slots open.
+      </p>
+
+      <div style="margin-top: 20px" class="glass">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+          "
+        >
+          <strong>Digital ID Preview</strong>
+          <span class="muted">Student-first • No DMs • No anonymity</span>
+        </div>
+
+        <div class="id-card">
+          <div class="avatar">AM</div>
+          <div style="flex: 1">
+            <div style="font-weight: 700">Amir Mechkour</div>
+            <div class="muted" style="margin-top: 6px">
+              Lincoln High • Grade 10
+            </div>
+          </div>
+          <div style="min-width: 220px">
+            <input
+              id="email"
+              class="input"
+              placeholder="you@school.edu"
+              type="email"
+            />
+          </div>
+        </div>
+
+        <div
+          style="
+            margin-top: 14px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+          "
+        >
+          <button id="submitBtn" class="btn">Request Invite</button>
+          <div id="status" class="muted">We will never sell your email.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Firebase (compat) for quick Firestore writes -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script>
+      // Use the project's client-safe Firebase config (from .env)
+      const firebaseConfig = {
+        apiKey: "AIzaSyD5qc8lvFdKq5Ir83nrYv6X6e5zbPL1_VI",
+        authDomain: "sera-hq.firebaseapp.com",
+        projectId: "sera-hq",
+        storageBucket: "sera-hq.firebasestorage.app",
+        messagingSenderId: "608393229921",
+        appId: "1:608393229921:web:0045589a3e734e07e79c20",
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+
+      const submitBtn = document.getElementById("submitBtn");
+      const status = document.getElementById("status");
+      submitBtn.addEventListener("click", async () => {
+        const email = document.getElementById("email").value.trim();
+        if (!email || !email.includes("@")) {
+          status.textContent = "Please enter a valid email.";
+          return;
+        }
+        submitBtn.disabled = true;
+        status.textContent = "Submitting...";
+        try {
+          await db.collection("waitlist").add({
+            email,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+          status.textContent = "Thanks — you are on the waitlist.";
+        } catch (e) {
+          console.error(e);
+          status.textContent =
+            "Error submitting — check Firestore rules or console.";
+        } finally {
+          submitBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
+<!doctype html>
+<html lang="en">
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Early Access | Sera</title>
