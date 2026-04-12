@@ -15,12 +15,27 @@ export type Post = {
   createdAt: number;
 };
 
+/**
+ * useFeed
+ *
+ * Subscribes to the school's posts collection and returns a list of posts
+ * sorted newest-first along with a loading flag.
+ *
+ * @param schoolId - The current school's document id. When undefined, the hook
+ *   returns an empty list and does not subscribe.
+ * @returns { posts: Post[], loading: boolean }
+ */
 export const useFeed = (schoolId: string | undefined) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!schoolId) return;
+    if (!schoolId) {
+      // No school selected: don't subscribe and expose an explicit non-loading empty state.
+      setPosts([]);
+      setLoading(false);
+      return;
+    }
     const q = query(
       collection(db, "schools", schoolId, "posts"),
       orderBy("createdAt", "desc"),
@@ -37,6 +52,7 @@ export const useFeed = (schoolId: string | undefined) => {
         setPosts([]);
         setLoading(false);
       },
+      `useFeed posts for school ${schoolId}`,
     );
     return unsub;
   }, [schoolId]);

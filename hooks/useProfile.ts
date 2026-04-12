@@ -20,6 +20,20 @@ export type Profile = {
   onboardingComplete: boolean;
 };
 
+/**
+ * useProfile
+ *
+ * React hook that subscribes to the user's global `userIndex/{uid}` document
+ * and returns the typed profile object along with a loading flag.
+ *
+ * Behavior notes:
+ * - Returns `profile = null` when no user is signed in or if the document does
+ *   not exist.
+ * - Catches permission errors via safeOnSnapshot's onError and sets profile
+ *   to null to avoid throwing in the UI.
+ *
+ * @returns { profile: Profile | null, loading: boolean }
+ */
 export const useProfile = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -43,6 +57,7 @@ export const useProfile = () => {
         setProfile(null);
         setLoading(false);
       },
+      `useProfile userIndex ${user.uid}`,
     );
 
     return unsub;

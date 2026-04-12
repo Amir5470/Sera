@@ -11,6 +11,16 @@ export type Reply = {
   createdAt: number;
 };
 
+/**
+ * useReplies
+ *
+ * Subscribes to reactions (replies) for a specific post and returns them
+ * in chronological order.
+ *
+ * @param schoolId - The school's document id
+ * @param postId - The post's document id for which to fetch replies
+ * @returns { replies: Reply[] }
+ */
 export const useReplies = (schoolId: string | undefined, postId: string) => {
   const [replies, setReplies] = useState<Reply[]>([]);
 
@@ -31,6 +41,7 @@ export const useReplies = (schoolId: string | undefined, postId: string) => {
         console.error("useReplies snapshot error:", err);
         setReplies([]);
       },
+      `useReplies reactions for post ${postId}`,
     );
     return unsub;
   }, [schoolId, postId]);
