@@ -27,7 +27,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="./css/styles.css" />
   </head>
   <body>
     <header>
@@ -187,7 +187,7 @@
             </div>
           </div>
           <h1 style=" display: flex; justify-self: center; width: 100%; margin-top: 24px">
-            Sera puts it all in <span class="sunset-gradient"> one place.</span>
+            Sera puts it all in ؜<span class="sunset-gradient">one place.</span>
           </h1>
         </div>
       </section>
@@ -271,11 +271,11 @@
       import { GLTFLoader } from 'https://unpkg.com/three@0.154.0/examples/jsm/loaders/GLTFLoader.js';
 
       const canvasModelMap = {
-        feedCanvas: '/models/feed-phone.glb',
-        scheduleCanvas: '/models/schedule-phone.glb',
-        calendarCanvas: '/models/calendar-phone.glb',
-        chatCanvas: '/models/class-phone.glb',
-        clubCanvas: '/models/club-phone.glb',
+        feedCanvas: './models/feed-phone.glb',
+        scheduleCanvas: './models/schedule-phone.glb',
+        calendarCanvas: './models/calendar-phone.glb',
+        chatCanvas: './models/class-phone.glb',
+        clubCanvas: './models/club-phone.glb',
       };
 
       const loaders = {};
@@ -309,8 +309,9 @@
         // load model and fit camera
         loader.load(url, (gltf) => {
           const model = gltf.scene;
-          model.scale.set(1.6, 1.6, 1.6);
-          model.rotation.y = -0.2;
+          model.scale.set(10, 10, 10);
+          model.position.set(0, 0, 0);
+          model.rotation.y = -0.3;
           group.add(model);
 
           // compute bounding box and adjust camera distance
@@ -411,7 +412,7 @@
         scene.add(group);
 
         const loader = new GLTFLoader();
-        const modelUrl = "/models/phone.glb";
+        const modelUrl = "./models/phone.glb";
 
         loader.load(
           modelUrl,

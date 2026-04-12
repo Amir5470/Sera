@@ -283,7 +283,7 @@ canvas {
 .accent-underline {
   display: inline-block;
   height: 6px;
-  width: 80px;
+  width: 100px;
   border-radius: 8px;
   background: linear-gradient(90deg, var(--primary), var(--secondary));
   margin-top: 10px;
