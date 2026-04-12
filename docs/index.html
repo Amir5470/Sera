@@ -187,7 +187,7 @@
             </div>
           </div>
           <h1 style=" display: flex; justify-self: center; width: 100%; margin-top: 24px">
-            Sera puts it all in <span class="sunset-gradient">one place.</span>
+            Sera puts it all in <span class="sunset-gradient"> one place.</span>
           </h1>
         </div>
       </section>
@@ -205,7 +205,7 @@
     <canvas id="scheduleCanvas" class="feature-canvas" style="border-radius: 12px"></canvas>
     <div class="glass feature">
       <h3 class="sunset-gradient">Your Timeline</h3>
-      <div id="timeline"></div>
+      <div class="double-arrow"></div>
       <p>AI-assisted schedule import and organization, built for students.</p>
     </div>
       <canvas id="calendarCanvas" class="feature-canvas" style="border-radius: 12px"></canvas>
@@ -213,18 +213,11 @@
   <div class="features-grid">
           <canvas id="chatCanvas" class="feature-canvas" style="border-radius: 12px"></canvas>
     <div class="glass feature">
-      <h3>Class Chats</h3>
-      <p>Auto-generated class chat rooms for seamless coordination.
+      <h3>Class - Club Chats</h3>
+      <p>Auto-generated chat rooms for seamless coordination.
         <br>
-        Share notes, ask questions, and stay connected with classmates.
+        Share notes, updates, and stay connected with your community.
         </p>
-    </div>
-    <div class="glass feature">
-      <h3>Clubs</h3>
-      <p>Connect with fellow students in your clubs and Athletic teams.
-        <br>
-        Share updates, coordinate events, and stay connected with your team.
-      </p>
     </div>
     <canvas id="clubCanvas" class="feature-canvas" style="border-radius: 12px"></canvas>
   </div>
@@ -272,6 +265,92 @@
           "three": "https://unpkg.com/three@0.154.0/build/three.module.js"
         }
       }
+    </script>
+    <script type="module">
+      import * as THREE from 'https://unpkg.com/three@0.154.0/build/three.module.js';
+      import { GLTFLoader } from 'https://unpkg.com/three@0.154.0/examples/jsm/loaders/GLTFLoader.js';
+
+      const canvasModelMap = {
+        feedCanvas: '/models/feed-phone.glb',
+        scheduleCanvas: '/models/schedule-phone.glb',
+        calendarCanvas: '/models/calendar-phone.glb',
+        chatCanvas: '/models/class-phone.glb',
+        clubCanvas: '/models/club-phone.glb',
+      };
+
+      const loaders = {};
+      const scenes = {};
+      const renderers = {};
+
+      const loader = new GLTFLoader();
+
+      function createSceneForCanvas(id, url) {
+        const canvas = document.getElementById(id);
+        if (!canvas) return;
+
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(35, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
+        camera.position.set(0, 0, 6);
+
+        const hemi = new THREE.HemisphereLight(0xffffff, 0x111111, 0.6);
+        scene.add(hemi);
+        const rim = new THREE.PointLight(0xffffff, 0.6, 20);
+        rim.position.set(5, 5, 5);
+        scene.add(rim);
+
+        const group = new THREE.Group();
+        scene.add(group);
+
+        // load model
+        loader.load(url, (gltf) => {
+          const model = gltf.scene;
+          model.scale.set(1.6, 1.6, 1.6);
+          model.rotation.y = -0.2;
+          group.add(model);
+        }, undefined, (e) => console.warn('feature model load', id, e));
+
+        // interactions
+        let mx = 0, my = 0;
+        function onPointerMove(e) {
+          const r = canvas.getBoundingClientRect();
+          mx = ((e.clientX - r.left) / r.width - 0.5) * 2; // -1..1
+          my = ((e.clientY - r.top) / r.height - 0.5) * 2; // -1..1
+        }
+        canvas.addEventListener('pointermove', onPointerMove);
+        canvas.addEventListener('pointerleave', () => { mx = 0; my = 0; });
+
+        scenes[id] = { scene, camera, group, renderer, canvas };
+        renderers[id] = renderer;
+      }
+
+      Object.entries(canvasModelMap).forEach(([id, url]) => createSceneForCanvas(id, url));
+
+      function onResize() {
+        Object.values(scenes).forEach(({ camera, renderer, canvas }) => {
+          const w = canvas.clientWidth;
+          const h = canvas.clientHeight;
+          camera.aspect = w / h;
+          camera.updateProjectionMatrix();
+          renderer.setSize(w, h, false);
+        });
+      }
+      window.addEventListener('resize', onResize);
+
+      let time = 0;
+      function animate() {
+        time += 0.01;
+        Object.values(scenes).forEach(({ scene, camera, group, renderer, canvas }) => {
+          // gentle idle rotation
+          group.rotation.y += 0.004 + Math.sin(time * 0.6) * 0.0005;
+          renderer.render(scene, camera);
+        });
+        requestAnimationFrame(animate);
+      }
+      requestAnimationFrame(animate);
     </script>
     <script type="module">
       import * as THREE from "https://unpkg.com/three@0.154.0/build/three.module.js";
