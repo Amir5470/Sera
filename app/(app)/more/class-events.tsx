@@ -60,10 +60,15 @@ export default function ClassEventsPage() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+    <Screen title="Class Events" contentStyle={{ padding: 12 }}>
       <View style={styles.headerRow}>
         <Text style={styles.header}>Class Events</Text>
-        <PressableScale style={styles.add} onPress={() => setVisible(true)}>
+        <PressableScale
+          style={styles.add}
+          onPress={() => setVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Add event"
+        >
           <Text style={styles.addText}>+ Add</Text>
         </PressableScale>
       </View>
@@ -76,7 +81,12 @@ export default function ClassEventsPage() {
         ListEmptyComponent={<Text style={styles.empty}>No events yet.</Text>}
       />
 
-      <Modal visible={visible} animationType="slide">
+      <Modal
+        visible={visible}
+        animationType="slide"
+        accessibilityViewIsModal
+        onRequestClose={() => setVisible(false)}
+      >
         <SafeAreaView style={styles.modal} edges={["top", "bottom"]}>
           <Text style={styles.header}>New Event</Text>
           <TextInput
@@ -116,7 +126,7 @@ export default function ClassEventsPage() {
           </View>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </Screen>
   );
 }
 

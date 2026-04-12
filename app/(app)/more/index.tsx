@@ -1,9 +1,10 @@
+import Screen from "@/components/ui/Screen";
 import { PressableScale } from "@/components/animated-helpers";
 import { Colors } from "@/constants/colors";
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
 
 const width = Dimensions.get("window").width;
 
@@ -12,12 +13,7 @@ export default function MoreIndex() {
   const router = useRouter();
 
   return (
-    <ScrollView
-      style={[
-        styles.container,
-        { backgroundColor: theme === "light" ? "#fff" : Colors.background },
-      ]}
-    >
+    <Screen title="More" contentStyle={{ padding: 12 }}>
       <View style={styles.header}>
         <Text style={styles.headerText}>More...</Text>
       </View>
@@ -27,12 +23,15 @@ export default function MoreIndex() {
           <PressableScale
             style={styles.item}
             onPress={() => router.push("/(app)/more/pomodoro" as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Open Pomodoro Timer"
           >
             <View style={styles.left}>
               <Ionicons
                 name="stopwatch-outline"
-                size={80}
+                size={60}
                 color={Colors.primary}
+                accessibilityHidden={false}
               />
               <Text style={styles.label}>Pomodoro Timer</Text>
             </View>
@@ -42,9 +41,11 @@ export default function MoreIndex() {
           <PressableScale
             style={styles.item}
             onPress={() => router.push("/(app)/more/study-tools" as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Open Study Tools"
           >
             <View style={styles.left}>
-              <Ionicons name="book-outline" size={80} color={Colors.primary} />
+              <Ionicons name="book-outline" size={60} color={Colors.primary} />
               <Text style={styles.label}>Study Tools</Text>
             </View>
           </PressableScale>
@@ -53,11 +54,13 @@ export default function MoreIndex() {
           <PressableScale
             style={styles.item}
             onPress={() => router.push("/(app)/more/campus-resources" as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Open Campus Resources"
           >
             <View style={styles.left}>
               <Ionicons
                 name="school-outline"
-                size={80}
+                size={60}
                 color={Colors.primary}
               />
               <Text style={styles.label}>Campus Resources</Text>
@@ -68,9 +71,11 @@ export default function MoreIndex() {
           <PressableScale
             style={styles.item}
             onPress={() => router.push("/(app)/more/service-hours" as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Open Community Service"
           >
             <View style={styles.left}>
-              <Ionicons name="time-outline" size={80} color={Colors.primary} />
+              <Ionicons name="time-outline" size={60} color={Colors.primary} />
               <Text style={styles.label}>Community Service</Text>
             </View>
           </PressableScale>
@@ -79,11 +84,13 @@ export default function MoreIndex() {
           <PressableScale
             style={styles.item}
             onPress={() => router.push("/(app)/more/exams" as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Open Exam Deadlines"
           >
             <View style={styles.left}>
               <Ionicons
                 name="calendar-outline"
-                size={80}
+                size={60}
                 color={Colors.primary}
               />
               <Text style={styles.label}>Exam Deadlines</Text>
@@ -94,11 +101,13 @@ export default function MoreIndex() {
           <PressableScale
             style={styles.item}
             onPress={() => router.push("/(app)/more/class-events" as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Open Class Events"
           >
             <View style={styles.left}>
               <Ionicons
                 name="megaphone-outline"
-                size={80}
+                size={60}
                 color={Colors.primary}
               />
               <Text style={styles.label}>Class Events</Text>
@@ -109,11 +118,13 @@ export default function MoreIndex() {
           <PressableScale
             style={styles.item}
             onPress={() => router.push("/(app)/more/teacher-contact" as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Open Teacher Quick Contact"
           >
             <View style={styles.left}>
               <Ionicons
                 name="mail-open-outline"
-                size={80}
+                size={60}
                 color={Colors.primary}
               />
               <Text style={styles.label}>Teacher Quick Contact</Text>
@@ -121,7 +132,7 @@ export default function MoreIndex() {
           </PressableScale>
         </View>
       </View>
-    </ScrollView>
+    </Screen>
   );
 }
 

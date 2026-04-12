@@ -18,6 +18,9 @@ export default function SendButton({ onPress, disabled, children }: Props) {
         disabled && classstyles.sendButtonDisabled,
       ]}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: Boolean(disabled) }}
+      accessibilityLabel={typeof children === "string" ? String(children) : "Send"}
     >
       <Text style={classstyles.sendButtonText}>{children}</Text>
     </PressableScale>

@@ -8,30 +8,17 @@ export default function CampusResourcesScreen() {
   const { theme } = useTheme();
 
   return (
-    <SafeAreaView
-      style={[
-        styles.safeArea,
-        { backgroundColor: theme === "light" ? "#fff" : Colors.background },
-      ]}
-    >
-      <View style={styles.container}>
-        <Header title="Campus Resources" />
-        <Text style={styles.subtitle}>Quick access to campus info.</Text>
+    <Screen title="Campus Resources" contentStyle={{ padding: 12 }}>
+      <Header title="Campus Resources" />
+      <Text style={styles.subtitle}>Quick access to campus info.</Text>
 
-        <View style={{ marginTop: 18 }}>
-          <Text style={{ color: Colors.muted }}>• Campus Map</Text>
-          <Text style={{ color: Colors.muted, marginTop: 8 }}>
-            • Dining / Menus
-          </Text>
-          <Text style={{ color: Colors.muted, marginTop: 8 }}>
-            • Transportation
-          </Text>
-          <Text style={{ color: Colors.muted, marginTop: 8 }}>
-            • Emergency Contacts
-          </Text>
-        </View>
+      <View style={{ marginTop: 18 }}>
+        <Text style={{ color: Colors.muted }}>• Campus Map</Text>
+        <Text style={{ color: Colors.muted, marginTop: 8 }}>• Dining / Menus</Text>
+        <Text style={{ color: Colors.muted, marginTop: 8 }}>• Transportation</Text>
+        <Text style={{ color: Colors.muted, marginTop: 8 }}>• Emergency Contacts</Text>
       </View>
-    </SafeAreaView>
+    </Screen>
   );
 }
 

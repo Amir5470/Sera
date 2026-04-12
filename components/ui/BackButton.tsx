@@ -16,8 +16,10 @@ export default function BackButton({ onPress, label = "←" }: Props) {
     <PressableScale
       onPress={onPress ?? (() => router.back())}
       style={classstyles.backButton}
+      accessibilityRole="button"
+      accessibilityLabel={label ? `Back: ${label}` : "Back"}
     >
-      <Text style={classstyles.backText}>←</Text>
+      <Text style={classstyles.backText}>{label}</Text>
     </PressableScale>
   );
 }
