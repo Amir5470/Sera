@@ -1,8 +1,8 @@
 import Header from "@/components/ui/Header";
+import Screen from "@/components/ui/Screen";
 import { Colors } from "@/constants/colors";
 import { useTheme } from "@/hooks/useTheme";
 import { StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function CampusResourcesScreen() {
   const { theme } = useTheme();
@@ -14,9 +14,15 @@ export default function CampusResourcesScreen() {
 
       <View style={{ marginTop: 18 }}>
         <Text style={{ color: Colors.muted }}>• Campus Map</Text>
-        <Text style={{ color: Colors.muted, marginTop: 8 }}>• Dining / Menus</Text>
-        <Text style={{ color: Colors.muted, marginTop: 8 }}>• Transportation</Text>
-        <Text style={{ color: Colors.muted, marginTop: 8 }}>• Emergency Contacts</Text>
+        <Text style={{ color: Colors.muted, marginTop: 8 }}>
+          • Dining / Menus
+        </Text>
+        <Text style={{ color: Colors.muted, marginTop: 8 }}>
+          • Transportation
+        </Text>
+        <Text style={{ color: Colors.muted, marginTop: 8 }}>
+          • Emergency Contacts
+        </Text>
       </View>
     </Screen>
   );

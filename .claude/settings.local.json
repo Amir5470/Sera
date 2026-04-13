@@ -21,7 +21,14 @@
       "mcp__code-review-graph__get_review_context_tool",
       "Skill(commit-commands:commit)",
       "Bash(git rm:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git restore:*)",
+      "Bash(npm test:*)",
+      "Bash(npm install:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(git clone:*)",
+      "Bash(npx eslint:*)",
+      "Bash(certutil -hashfile \"C:\\\\Users\\\\amirm\\\\Documents\\\\Sera\\\\MISSION_CONTROL.md\" SHA256)"
     ]
   },
   "enableAllProjectMcpServers": true,

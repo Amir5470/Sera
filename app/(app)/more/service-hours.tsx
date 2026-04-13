@@ -28,6 +28,7 @@ import {
   View,
 } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const SERVICE_HOUR_GOAL = 25; // configurable goal
 
@@ -211,7 +212,8 @@ export default function ServiceHoursScreen() {
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
-        <View
+        <SafeAreaView
+          edges={["top"]}
           style={[
             styles.modalSafe,
             { backgroundColor: theme === "light" ? "#fff" : Colors.background },
@@ -264,7 +266,7 @@ export default function ServiceHoursScreen() {
               <Button title="Save" onPress={submit} />
             </View>
           </View>
-        </View>
+        </SafeAreaView>
       </Modal>
     </View>
   );

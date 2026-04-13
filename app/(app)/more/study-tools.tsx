@@ -1,11 +1,14 @@
-import Header from "@/components/ui/Header";
 import { Colors } from "@/constants/colors";
+import { clubstyles } from "@/constants/styles";
 import { useTheme } from "@/hooks/useTheme";
-import { StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function StudyToolsScreen() {
   const { theme } = useTheme();
+  const router = useRouter();
 
   return (
     <SafeAreaView
@@ -15,7 +18,19 @@ export default function StudyToolsScreen() {
       ]}
     >
       <View style={styles.container}>
-        <Header title="Study Tools" />
+        <View style={clubstyles.header}>
+          <Pressable
+            onPress={() => router.back()}
+            style={clubstyles.backButton}
+          >
+            <Text style={clubstyles.backText}>←</Text>
+          </Pressable>
+          <View>
+            <Text style={clubstyles.headerText} numberOfLines={1}>
+              Study Tools
+            </Text>
+          </View>
+        </View>
         <Text style={styles.subtitle}>Small utilities to help you study.</Text>
 
         <View style={{ marginTop: 18 }}>

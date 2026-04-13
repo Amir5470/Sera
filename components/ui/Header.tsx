@@ -1,7 +1,8 @@
 import { classstyles } from "@/constants/styles";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Text, View } from "react-native";
+import { Platform, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PressableScale } from "../animated-helpers";
 
 type Props = {
@@ -22,8 +23,10 @@ export default function Header({
   onPress,
 }: Props) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const topPadding = insets.top || (Platform.OS === "ios" ? 0 : 10);
   return (
-    <View style={[classstyles.header, style]}>
+    <View style={[classstyles.header, { paddingTop: topPadding }, style]}>
       <View style={{ width: 40 }}>
         {showBack ? (
           <PressableScale

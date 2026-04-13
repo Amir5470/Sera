@@ -1,6 +1,7 @@
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db } from "../lib/firebase";
+import safeOnSnapshot from "../lib/firestoreHelpers";
 
 export type ClassRoom = {
   id: string;
@@ -42,6 +43,7 @@ export const useClassRooms = (
     if (!userId || !schoolId) return;
 
     let unsubscribe: (() => void) | undefined;
+    let attempts = 0;
 
     const checkMembershipAndSubscribe = async () => {
       try {
@@ -73,18 +75,97 @@ export const useClassRooms = (
             id: doc.id,
             ...doc.data(),
           })) as ClassRoom[];
-          setClassRooms(roomsInitial);
+
+          // Filter initial list to only classes where the user is a member.
+          const membership = await Promise.all(
+            roomsInitial.map(async (r) => {
+              try {
+                const memberSnap = await getDoc(
+                  doc(
+                    db,
+                    "schools",
+                    schoolId,
+                    "classes",
+                    r.id,
+                    "members",
+                    userId,
+                  ),
+                );
+                return memberSnap.exists();
+              } catch (e) {
+                return false;
+              }
+            }),
+          );
+          console.log(
+            "DEBUG: useClassRooms membership array (initial)",
+            membership.map((isMember, i) => ({
+              id: roomsInitial[i]?.id,
+              name: roomsInitial[i]?.name,
+              isMember,
+            })),
+          );
+          const filteredInitial = roomsInitial.filter((_, i) => membership[i]);
+          console.log(
+            "DEBUG: useClassRooms filteredInitial",
+            filteredInitial.length,
+            "of",
+            roomsInitial.length,
+          );
+          setClassRooms(filteredInitial);
           setLoading(false);
 
           unsubscribe = safeOnSnapshot(
             classesRef,
-            (snapshot) => {
-              const rooms = snapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-              })) as ClassRoom[];
-              setClassRooms(rooms);
-              setLoading(false);
+            async (snapshot) => {
+              try {
+                const rooms = snapshot.docs.map((doc) => ({
+                  id: doc.id,
+                  ...doc.data(),
+                })) as ClassRoom[];
+
+                const membershipRealtime = await Promise.all(
+                  rooms.map(async (r) => {
+                    try {
+                      const memberSnap = await getDoc(
+                        doc(
+                          db,
+                          "schools",
+                          schoolId,
+                          "classes",
+                          r.id,
+                          "members",
+                          userId,
+                        ),
+                      );
+                      return memberSnap.exists();
+                    } catch (e) {
+                      return false;
+                    }
+                  }),
+                );
+                console.log(
+                  "DEBUG: useClassRooms membership array (realtime)",
+                  membershipRealtime.map((isMember, i) => ({
+                    id: rooms[i]?.id,
+                    name: rooms[i]?.name,
+                    isMember,
+                  })),
+                );
+
+                const filtered = rooms.filter((_, i) => membershipRealtime[i]);
+                console.log(
+                  "DEBUG: useClassRooms filteredRealtime",
+                  filtered.length,
+                  "of",
+                  rooms.length,
+                );
+                setClassRooms(filtered);
+                setLoading(false);
+              } catch (err) {
+                console.error("useClassRooms snapshot processing failed", err);
+                setLoading(false);
+              }
             },
             (err) => {
               console.error(
@@ -102,6 +183,21 @@ export const useClassRooms = (
             e?.code ?? e,
             e?.message ?? e?.toString(),
           );
+          // If this is a permission race (rules or server-side index not visible yet),
+          // retry a few times with backoff before giving up.
+          if (
+            (e?.code === "permission-denied" ||
+              String(e).includes("permission-denied")) &&
+            attempts < 3
+          ) {
+            attempts += 1;
+            const delay = 800 * attempts;
+            console.warn(
+              `useClassRooms: retrying getDocs in ${delay}ms (attempt ${attempts})`,
+            );
+            setTimeout(checkMembershipAndSubscribe, delay);
+            return;
+          }
           setClassRooms([]);
           setLoading(false);
           return;

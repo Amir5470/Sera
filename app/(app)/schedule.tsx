@@ -1,10 +1,13 @@
+import { PressableScale } from "@/components/animated-helpers";
 import { classstyles } from "@/constants/styles";
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  InteractionManager,
   Modal,
   ScrollView,
   StyleSheet,
@@ -13,7 +16,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { PressableScale } from "../../components/animated-helpers";
 import { Colors } from "../../constants/colors";
 import { useAuth } from "../../hooks/useAuth";
 import { useBellSchedules } from "../../hooks/useBellSchedules";
@@ -25,10 +27,10 @@ import { BellPeriod, voteForSchedule } from "../../lib/bellSchedules";
 import { joinOrCreateClass, leaveClass } from "../../lib/classes";
 import fetchWithLimit from "../../lib/fetchWithLimit";
 import { successNotification } from "../../lib/haptics";
+import { waitForPickedImage } from "../../lib/imagePickBridge";
 import { sanitizeObjectPayload } from "../../lib/inputSanitizer";
+// AI provider functions (extractClasses, extractTimes) are in lib/ai.ts (extractClasses, extractTimes).
 
-// AI provider functions (extractClasses, extractTimes) are in lib/ai and
-// selected via EXPO_PUBLIC_AI_PROVIDER (default: 'anthropic').
 const PERIOD_OPTIONS = Array.from({ length: 9 }, (_, i) => {
   const period = i + 1;
   const suffix =
@@ -163,13 +165,32 @@ interface PeriodTime {
 }
 
 const uriToBase64 = async (uri: string): Promise<string> => {
+  // Prefer expo-file-system on-device which can directly read files as base64.
+  try {
+    // Dynamic import so web builds that don't include expo-file-system won't fail.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const FileSystem = await import("expo-file-system");
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: "base64",
+    } as any);
+    return base64;
+  } catch (e) {
+    // ignore and fall back to fetch+blob approach
+    // console.debug("expo-file-system not available, falling back to fetch", e);
+  }
+
+  // Fallback for environments where expo-file-system isn't available (web)
   const response = await fetchWithLimit(uri);
   const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve((reader.result as string).split(",")[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
+  return await new Promise((resolve, reject) => {
+    try {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve((reader.result as string).split(",")[1]);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(blob as any);
+    } catch (err) {
+      reject(err);
+    }
   });
 };
 // AI-powered extraction is provided by lib/ai.ts (extractClasses, extractTimes).
@@ -705,10 +726,12 @@ export default function Schedule() {
     profile?.schoolId,
   );
 
-  const [scanning, setScanning] = useState(false);
+  const router = useRouter();
+
   const [scanStep, setScanStep] = useState<"idle" | "schedule" | "times">(
     "idle",
   );
+  const [scanning, setScanning] = useState(false);
   const [managing, setManaging] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [scannedClasses, setScannedClasses] = useState<ScannedClass[]>([]);
@@ -728,7 +751,7 @@ export default function Schedule() {
   // Check if today is a weekend
   const isWeekend = useMemo(() => {
     const day = new Date().getDay();
-    return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+    return day === -1 || day === 6; // 0 = Sunday, 6 = Saturday
   }, []);
   // Merge today's bell schedule times into the class list for display
   const sortedClasses = useMemo(() => {
@@ -785,29 +808,104 @@ export default function Schedule() {
   const pickOrTakePhoto = async (
     useCamera: boolean,
   ): Promise<string | null> => {
-    const permission = useCamera
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permission.status !== "granted") {
-      Alert.alert("Permission Denied", "Access needed.");
-      return null;
-    }
-    const result = useCamera
-      ? await ImagePicker.launchCameraAsync({ quality: 0.7 })
-      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7 });
-    if (result.canceled || !result.assets[0]) return null;
+    console.log("DEBUG: pickOrTakePhoto invoked", { useCamera });
     try {
+      const permission = useCamera
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log("DEBUG: ImagePicker permission result", permission);
+      if (permission.status !== "granted") {
+        Alert.alert("Permission Denied", "Access needed.");
+        return null;
+      }
+
+      let result: any;
+      try {
+        console.log("DEBUG: launching ImagePicker", { useCamera });
+        const launchPromise = useCamera
+          ? ImagePicker.launchCameraAsync({ quality: 0.7 })
+          : ImagePicker.launchImageLibraryAsync({ quality: 0.7 });
+        // Allow more time for native picker presentation on slower devices (10s)
+        const timeoutMs = 1000;
+        const timeoutPromise = new Promise((res) =>
+          setTimeout(() => res({ __timeout: true }), timeoutMs),
+        );
+        // If the native picker doesn't resolve within timeoutMs, navigate to debug screen
+        const maybe = await Promise.race([launchPromise, timeoutPromise]);
+        if (maybe && (maybe as any).__timeout) {
+          console.warn("ImagePicker launch timed out");
+          console.log(
+            "DEBUG: ImagePicker timed out — navigating to debug screen",
+          );
+          try {
+            router.push(
+              `/debug-image-picker?auto=true&useCamera=${useCamera ? "true" : "false"}`,
+            );
+          } catch (e) {
+            console.error("Failed to open debug image picker route", e);
+          }
+          try {
+            const picked = await waitForPickedImage();
+            if (!picked) return null;
+            if (picked.base64) return picked.base64;
+            const b64 = await uriToBase64(picked.uri);
+            return b64;
+          } catch (e) {
+            console.error("waitForPickedImage failed", e);
+            return null;
+          }
+        }
+        result = maybe as any;
+      } catch (e) {
+        console.error("ImagePicker launch failed", e);
+        Alert.alert("Error", "Could not open image picker.");
+        return null;
+      }
+
+      console.log(
+        "DEBUG: ImagePicker launch result",
+        result && {
+          canceled: result.canceled ?? result.cancelled,
+          assets: result.assets?.length ?? 0,
+        },
+      );
+
+      if (result.canceled || !result.assets?.[0]) return null;
+
       setScanning(true);
-      return await uriToBase64(result.assets[0].uri);
-    } catch {
-      Alert.alert("Error", "Could not process image.");
+      try {
+        const b64 = await uriToBase64(result.assets[0].uri);
+        console.log("DEBUG: pickOrTakePhoto base64 length", b64?.length ?? 0, {
+          useCamera,
+        });
+        return b64;
+      } catch (e) {
+        console.error("uriToBase64 failed", e);
+        Alert.alert("Error", "Could not process image.");
+        return null;
+      }
+    } catch (e) {
+      console.error("pickOrTakePhoto unexpected error", e);
+      Alert.alert("Error", "Image picker failed.");
       return null;
     }
   };
 
   const startScheduleScan = async (useCamera: boolean) => {
+    console.log("DEBUG: startScheduleScan invoked", {
+      useCamera,
+      scanOptionsVisible,
+    });
     // 1. Ensure the options modal is closed before launching picker
     setScanOptionsVisible(false);
+
+    // Wait until animations/interactions finish so the native picker can present
+    await new Promise((res) =>
+      InteractionManager.runAfterInteractions(() => res(undefined)),
+    );
+    // Extra delay to allow modal dismissal animations to complete on all platforms
+    await new Promise((res) => setTimeout(res, 400));
+    console.log("DEBUG: interaction delay complete, launching picker");
 
     const base64 = await pickOrTakePhoto(useCamera);
     if (!base64) {
@@ -821,11 +919,20 @@ export default function Schedule() {
     setScanStep("schedule");
 
     try {
+      console.log(
+        "DEBUG: startScheduleScan calling extractClasses, base64 length",
+        base64.length,
+      );
       const classes = await extractClasses(base64);
-      setScannedClasses(classes);
+      console.log("DEBUG: extractClasses result", classes);
+      setScannedClasses(classes || []);
       setScanStep("times");
-    } catch {
-      Alert.alert("Error", "Could not read schedule.");
+    } catch (err: any) {
+      console.error("extractClasses failed", err);
+      Alert.alert(
+        "Error",
+        err?.message || "Could not read schedule. Check console for details.",
+      );
       setScanStep("idle");
       setManaging(true);
     } finally {
@@ -845,10 +952,16 @@ export default function Schedule() {
       return;
     }
     try {
+      console.log(
+        "DEBUG: scanTimesPhoto calling extractTimes, base64 length",
+        base64.length,
+      );
       const times = await extractTimes(base64);
+      console.log("DEBUG: extractTimes result", times);
       setScannedResults(mergeTimes(scannedClasses, times));
       setReviewing(true);
     } catch {
+      console.error("extractTimes failed", arguments);
       setScannedResults(
         scannedClasses.map((c) => ({ ...c, startTime: "", endTime: "" })),
       );
@@ -860,15 +973,26 @@ export default function Schedule() {
   };
 
   const handleFinalSave = async () => {
-    if (!user || !profile?.schoolId) return;
+    console.log("DEBUG: handleFinalSave start", {
+      uid: user?.uid,
+      schoolId: profile?.schoolId,
+    });
+    if (!user || !profile?.schoolId) {
+      console.error("DEBUG: handleFinalSave missing user or school", {
+        user,
+        profile,
+      });
+      Alert.alert("Error", "Missing user or school information.");
+      return;
+    }
     setSaving(true);
     try {
       const cleaned = scannedResults.map((cls) => {
         const clean = sanitizeObjectPayload(cls, 200);
         return {
-          name: clean.name,
-          teacher: clean.teacher,
-          period: clean.period,
+          name: (clean.name || "").trim(),
+          teacher: (clean.teacher || "").trim(),
+          period: (clean.period || "").trim(),
           type: clean.type,
           emoji: clean.emoji || "📖",
           startTime: clean.startTime || "",
@@ -876,16 +1000,53 @@ export default function Schedule() {
         };
       });
 
-      await Promise.all(
+      // Validate required fields before attempting writes
+      const invalid = cleaned
+        .map((c, i) => ({ idx: i, name: c.name, period: c.period }))
+        .filter((c) => !c.name || !c.period);
+      if (invalid.length > 0) {
+        const first = invalid[0];
+        Alert.alert(
+          "Missing fields",
+          `Please fill the class name and period for item #${first.idx + 1} before saving.`,
+        );
+        setSaving(false);
+        return;
+      }
+
+      console.log("DEBUG: handleFinalSave cleaned items", cleaned);
+      // Attempt per-item save and collect failures so we can report granularly
+      const results = await Promise.allSettled(
         cleaned.map((cls) =>
           joinOrCreateClass(user.uid, profile.schoolId, cls as any),
         ),
       );
-      successNotification();
-      setReviewing(false);
-      setManaging(false);
-    } catch {
-      Alert.alert("Error", "Failed to save classes.");
+
+      console.log("DEBUG: handleFinalSave results", results);
+
+      const errors: string[] = [];
+      results.forEach((r, i) => {
+        if (r.status === "rejected") {
+          console.error("joinOrCreateClass failed for item", i, r.reason);
+          errors.push(
+            `Item ${i + 1}: ${r.reason?.message || String(r.reason)}`,
+          );
+        }
+      });
+
+      if (errors.length > 0) {
+        Alert.alert(
+          "Partial Failure",
+          `Some classes failed to save:\n\n${errors.slice(0, 5).join("\n")}`,
+        );
+      } else {
+        successNotification();
+        setReviewing(false);
+        setManaging(false);
+      }
+    } catch (e: any) {
+      console.error("Failed saving classes", e);
+      Alert.alert("Error", e?.message || "Failed to save classes.");
     } finally {
       setSaving(false);
     }

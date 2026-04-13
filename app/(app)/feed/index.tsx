@@ -59,10 +59,11 @@ function PostCard({
   const { replies } = useReplies(schoolId, post.id);
   const [expanded, setExpanded] = useState(false);
   const [replyText, setReplyText] = useState("");
-  const [sending, setSending] = useState(false);
+  const [, setSending] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [responding, setResponding] = useState(false);
+  // 'responding' is only used to disable UI while RSVP is in flight; keep setter for future UX
+  const [, setResponding] = useState(false);
 
   const styles = useMemo(
     () =>
@@ -563,10 +564,9 @@ export default function FeedScreen() {
   const [eventEnd, setEventEnd] = useState("");
   const [eventDetails, setEventDetails] = useState("");
   const [eventMessage, setEventMessage] = useState("");
-  const [eventThumbnailLocal, setEventThumbnailLocal] = useState<null | string>(
-    null,
-  );
-  const [eventUploadingThumbnail, setEventUploadingThumbnail] = useState(false);
+  const [eventThumbnailLocal, setEventThumbnailLocal] = useState<null | string>(null);
+  // eventUploadingThumbnail reserved for UX when uploading thumbnails; keep setter only to avoid unused variable warnings
+  const [, setEventUploadingThumbnail] = useState(false);
 
   const styles = useMemo(
     () =>
@@ -811,13 +811,7 @@ export default function FeedScreen() {
             />
           )}
           ListEmptyComponent={
-            <Text
-              style={{
-                color: Colors.muted,
-                textAlign: "center",
-                marginTop: 40,
-              }}
-            >
+            <Text style={classstyles.emptyText}>
               No posts yet. Be the first!
             </Text>
           }
@@ -825,11 +819,7 @@ export default function FeedScreen() {
       )}
 
       {/* Toast for non-blocking redirect notice */}
-      {toastVisible && (
-        <View style={styles.toast} pointerEvents="none">
-          <Text style={styles.toastText}>{toastMessage}</Text>
-        </View>
-      )}
+      {toastVisible && <Toast message={toastMessage} />}
 
       <Modal
         visible={eventModalVisible}

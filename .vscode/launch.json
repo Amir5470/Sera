@@ -1,0 +1,59 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Android",
+      "type": "reactnative",
+      "request": "launch",
+      "platform": "android",
+      "sourceMapPathOverrides": {
+        "/app/*": "${workspaceFolder}/app/*"
+      }
+    },
+    {
+      "name": "Debug iOS",
+      "type": "reactnative",
+      "request": "launch",
+      "platform": "ios",
+      "sourceMapPathOverrides": {
+        "/app/*": "${workspaceFolder}/app/*"
+      }
+    },
+    {
+      "name": "Start Expo (Dev Client) & Attach",
+      "type": "reactnative",
+      "request": "launch",
+      "platform": "exponent",
+      "appRoot": "${workspaceFolder}",
+      "env": {
+        "EXPO_DEVTOOLS_LISTEN_ADDRESS": "localhost:19000"
+      }
+    },
+    {
+      "name": "Attach to Expo (Dev Client)",
+      "type": "reactnative",
+      "request": "attach",
+      "platform": "exponent",
+      "appRoot": "${workspaceFolder}"
+    },
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": true,
+      "cwd": "c:/Users/amirm/Documents/Sera",
+      "program": "c:/Users/amirm/Documents/Sera/build/Debug/outDebug",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ]
+}

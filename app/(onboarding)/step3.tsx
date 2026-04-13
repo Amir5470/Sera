@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Colors } from "../../constants/colors";
 import { useAuth } from "../../hooks/useAuth";
-import { saveProfileIndex } from "../../lib/profile";
+import { saveProfile } from "../../lib/profile";
 import { findOrCreateSchool, searchSchools } from "../../lib/schools";
 
 const GRADES = ["9th", "10th", "11th", "12th"];
@@ -55,11 +55,11 @@ export default function Step3() {
     if (!user) return;
     setLoading(true);
     const schoolId = await findOrCreateSchool(school, city);
-    await saveProfileIndex(user.uid, {
+    // Use atomic save to avoid partial profile state (userIndex updated without school membership)
+    await saveProfile(user.uid, schoolId, {
       school: school.trim(),
       city: city.trim(),
       grade,
-      schoolId,
     });
     if (isEdit) {
       router.replace("/(app)/settings" as any);

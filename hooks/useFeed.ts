@@ -1,6 +1,6 @@
-import { collection, orderBy, query } from "firebase/firestore";
+import { collection, doc, getDoc, orderBy, query } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { db } from "../lib/firebase";
+import { auth, db } from "../lib/firebase";
 import safeOnSnapshot from "../lib/firestoreHelpers";
 import { SharedEventPayload } from "../lib/posts";
 
@@ -36,25 +36,69 @@ export const useFeed = (schoolId: string | undefined) => {
       setLoading(false);
       return;
     }
-    const q = query(
-      collection(db, "schools", schoolId, "posts"),
-      orderBy("createdAt", "desc"),
-    );
-    const unsub = safeOnSnapshot(
-      q,
-      (snap) => {
-        setPosts(
-          snap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }) as Post),
+
+    // Guard: ensure the authenticated user's userIndex actually lists this schoolId
+    // before creating a long-lived snapshot subscription. This avoids permission
+    // denied snapshot churn when the server-side index is not yet visible.
+    const currentUid = auth.currentUser?.uid;
+    if (!currentUid) {
+      console.warn(
+        "useFeed: no authenticated user; skipping posts subscription",
+      );
+      setPosts([]);
+      setLoading(false);
+      return;
+    }
+
+    let unsub: (() => void) | undefined;
+
+    (async () => {
+      try {
+        const uiRef = doc(db, "userIndex", currentUid);
+        const uiSnap = await getDoc(uiRef);
+        const userSchool = uiSnap.exists()
+          ? (uiSnap.data() as any).schoolId
+          : undefined;
+        if (userSchool !== schoolId) {
+          console.warn(
+            `useFeed: userIndex.schoolId mismatch or not yet present (have=${userSchool} want=${schoolId}); skipping subscription`,
+          );
+          setPosts([]);
+          setLoading(false);
+          return;
+        }
+
+        // Proceed to subscribe once the pre-check passes
+        const q = query(
+          collection(db, "schools", schoolId, "posts"),
+          orderBy("createdAt", "desc"),
         );
-        setLoading(false);
-      },
-      (err) => {
+        unsub = safeOnSnapshot(
+          q,
+          (snap) => {
+            setPosts(
+              snap.docs.map(
+                (doc: any) => ({ id: doc.id, ...doc.data() }) as Post,
+              ),
+            );
+            setLoading(false);
+          },
+          (err) => {
+            setPosts([]);
+            setLoading(false);
+          },
+          `useFeed posts for school ${schoolId}`,
+        );
+      } catch (e) {
+        console.error("useFeed pre-check failed:", e);
         setPosts([]);
         setLoading(false);
-      },
-      `useFeed posts for school ${schoolId}`,
-    );
-    return unsub;
+      }
+    })();
+
+    return () => {
+      if (unsub) unsub();
+    };
   }, [schoolId]);
 
   return { posts, loading };

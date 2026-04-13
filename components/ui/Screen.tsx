@@ -21,7 +21,7 @@ export default function Screen({
     <View
       style={classstyles.container}
       accessible
-      accessibilityRole={title ? "region" : "none"}
+      accessibilityRole={title ? "header" : "none"}
       accessibilityLabel={title ?? undefined}
     >
       <View style={[classstyles.listContent, contentStyle]}>{children}</View>

@@ -1,31 +1,37 @@
 import fetchWithLimit from "./fetchWithLimit";
 
-const ANTHROPIC_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_KEY;
+const GEMINI_KEY = process.env.EXPO_PUBLIC_GEMINI_KEY;
 
 export async function moderateText(text: string) {
-  if (!ANTHROPIC_KEY) return { safe: true, reason: "no-key" };
-  const prompt = `Classify the following text for safety. Respond with exactly SAFE or UNSAFE. Text:\n"""\n${text}\n"""\nIf UNSAFE, briefly state the reason after a colon.`;
+  if (!GEMINI_KEY) return { safe: true, reason: "no-key" };
+  const prompt = `Classify the following text for safety. Respond with exactly SAFE or UNSAFE. If UNSAFE, briefly state the reason after a colon.\n\nText:\n"""\n${text}\n"""`;
 
-  const body = JSON.stringify({
-    model: "claude-1",
-    max_tokens: 200,
-    messages: [{ role: "user", content: prompt }],
-  });
+  const body = {
+    prompt: {
+      messages: [
+        {
+          content: { text: prompt },
+          role: "user",
+        },
+      ],
+    },
+    maxOutputTokens: 200,
+  };
 
   try {
-    const res = await fetchWithLimit("https://api.anthropic.com/v1/messages", {
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generate?key=${GEMINI_KEY}`;
+    const res = await fetchWithLimit(API_URL, {
       method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_KEY,
-      },
-      body,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
     if (!res.ok) return { safe: true, reason: "api-failed" };
-    const data = await res.json();
-    const raw = data?.content?.[0]?.text || data?.output || "";
-    const textResp = String(raw).trim();
+    const json = await res.json();
+    const out =
+      json?.candidates?.[0]?.content?.[0]?.text ||
+      json?.output?.[0]?.content?.text ||
+      JSON.stringify(json);
+    const textResp = String(out).trim();
     if (textResp.startsWith("UNSAFE")) {
       const parts = textResp.split(":");
       return { safe: false, reason: (parts[1] || "").trim() };

@@ -1,194 +1,156 @@
-# Post-Launch Growth Strategy — NoSchoolState Component (Draft)
+# Post-Launch Growth Strategy — NoSchoolState (Final Draft)
 
 Date: 2026-04-12
-Author: Claude Code (draft for review)
+Author: Growth Lead (assistant)
 
 ★ Insight ─────────────────────────────────────
-- No-school dropoff is a high-leverage place to increase activation: a concise benefit-first pitch + 1 clear CTA dramatically improves conversion.
-- Trackable, small events (view → click → create → invite → first post) map cleanly to the onboarding funnel and make it easy to run short experiments.
-- Push notifications should feel school-centric and social (what your classmates are doing) rather than product-first ("Post now").
+- The NoSchoolState is a high-leverage activation point: users who can’t find their school often drop out. A benefit-first headline + one clear primary CTA reduces friction and increases activation.
+- Keep the UI pure (components/ui/NoSchoolState.tsx:1-160) and fire analytics where callbacks are wired (app/(app)/feed/index.tsx:792-796). This preserves testability and attribution.
+- Small contextual nudges (starter prompts, 24h first-post push) convert doubters into posters and create early social proof.
 ───────────────────────────────────────────────
 
-## Overview
+## Objective
+Make the NoSchool experience convert: increase "find or create school" completion, raise first-post within 24h, and seed invitations for viral growth.
 
-This document outlines the analytics, notification templates, and conversion copy for the new NoSchoolState UI. The goal: reduce drop-off when a user cannot find their school, increase user-initiated school creation, and drive first-post/first-engagement within 24 hours.
-
----
-
-## 1) Analytics Mapping
-
-Naming conventions: snake_case event names. Use consistent property keys: user_id, school_id (nullable), source ("onboarding", "feed", "settings"), variant (A/B label), screen (component/page name).
-
-Primary events (minimal required):
-
-- no_school_viewed
-  - When: NoSchoolState component renders and is visible to the user
-  - Properties: { user_id, screen, source, compact (bool), timestamp }
-  - Purpose: baseline exposure metric
-
-- no_school_cta_clicked
-  - When: any CTA inside the component is tapped (primary/secondary/tertiary)
-  - Properties: { user_id, screen, source, cta: "find" | "create" | "invite", variant }
-  - Purpose: measure intent & CTA effectiveness
-
-- search_school_started
-  - When: user opens the school search flow from NoSchoolState
-  - Properties: { user_id, school_id: null, screen, source, variant }
-  - Purpose: track discovery intent
-
-- create_school_started
-  - When: user opens the create/claim school flow from NoSchoolState
-  - Properties: { user_id, screen, source, variant }
-  - Purpose: funnel into creation flow
-
-- create_school_completed
-  - When: school doc created AND user is added as founder/admin in the school members subcollection
-  - Properties: { user_id, school_id, screen, source, variant }
-  - Purpose: successful creation metric
-
-- invite_sent
-  - When: user triggers an invite (share sheet or link generation)
-  - Properties: { user_id, school_id (if created), invite_method: "share_sheet"|"link", recipients_estimated }
-  - Purpose: viral activation vector
-
-- no_school_invite_clicked
-  - When: user taps Invite classmates link in NoSchoolState
-  - Properties: { user_id, screen, source }
-
+Success metrics (primary):
+- create_school_completed rate
 - first_post_created_within_24h
-  - When: user creates their first post within 24 hours of selecting/creating a school
-  - Properties: { user_id, school_id, time_since_school_join (s), source }
-  - Purpose: measure early engagement
-
-- no_school_cta_variant_exposed
-  - When: variant (A/B) is shown for CTA copy or layout
-  - Properties: { user_id, variant, screen, experiment_id }
-  - Purpose: A/B test attribution
-
-Recommended downstream destinations: Amplitude / Firebase Analytics + export to BigQuery for cohort and retention analysis.
-
-Event priority: Mark the top 5 as critical to implement in the launch sprint: no_school_viewed, no_school_cta_clicked, create_school_started, create_school_completed, first_post_created_within_24h.
-
-Implementation notes:
-- Fire events client-side at the page-level where callbacks are wired (keep component pure).
-- Add server-side verification for create_school_completed if possible (to avoid client spoofing).
-- Attach experiment/variant metadata via assignment service or existing feature-flag tool.
+- invite_sent
 
 ---
 
-## 2) Notification Strategy (Push templates)
+## NoSchoolState-specific copy & UX
+File: components/ui/NoSchoolState.tsx
 
-Context: Target users who have selected a school but haven't posted in their first 24 hours. Each template includes personalization tokens and a deep link. Keep tone friendly, school-centric, and low-friction.
+Headline (benefit-first):
+- "🏫 Your school, all in one place."  // components/ui/NoSchoolState.tsx:33
+Subheading:
+- "See schedules, join classes, and follow the school feed — student-led and ad-free." // components/ui/NoSchoolState.tsx:38
+Primary CTA (recommended):
+- "Find your school" (calls onSearch) // wire at app/(app)/feed/index.tsx:792
+Secondary CTA:
+- "Create a school" (calls onCreate) // wire at app/(app)/feed/index.tsx:794
+Tertiary (optional link):
+- "Invite classmates" — shown only when onInvite prop provided
 
-Timing: 24 hours after school join/selection if user has not made their first post. Consider retarget at 72 hours with a different angle.
+Compact variant: reduce bullets, show only primary CTA (compact=true).
+
+Microcopy & confirmation flows:
+- Create success header: "School created — you're the founder"
+- Post-creation microflows: "Invite classmates" (share link) + "Write welcome post" (starter prompt)
+
+---
+
+## Analytics mapping (implement first)
+Instrument at the page-level where callbacks are wired (feed/index.tsx:792-796). Prioritize top 6 events.
+
+1) no_school_viewed
+- When: NoSchoolState renders visible
+- Props: { user_id, screen: "feed_no_school", source, compact (bool), variant }
+
+2) no_school_cta_clicked
+- When: User clicks a CTA in NoSchoolState
+- Props: { user_id, screen, cta: "find"|"create"|"invite", source, variant }
+
+3) search_school_started
+- When: Search UI opens (from onSearch)
+- Props: { user_id, screen, source }
+
+4) create_school_started
+- When: Create flow opened
+- Props: { user_id, screen, source, variant }
+
+5) create_school_completed
+- When: Server confirms school doc exists and user is member
+- Props: { user_id, school_id, screen, source }
+- Note: verify server-side to prevent client spoofing
+
+6) first_post_created_within_24h
+- When: User posts first post within 24 hours of school join/creation
+- Props: { user_id, school_id, time_since_join_s, used_starter_prompt }
+
+Secondary (supporting) events:
+- starter_prompt_used, invite_sent, push_sent/opened, deep_link_handled
+
+Event destinations: Amplitude / Firebase + BigQuery export for cohort queries.
+
+---
+
+## High-conversion push templates (24h first-post retarget)
+Personalize with tokens: {display_name}, {school_name}, {school_id}
 
 Template A — Social Curiosity (Recommended)
-Title: See what's happening at {school_name}!
-Body: {display_name}, your classmates already posted about events and clubs — tap to jump into the school feed and say hi.
-Deep link: sera://school/{school_id}/feed
-Reasoning: Leans on FOMO and social proof.
+- Title: See what's happening at {school_name}!
+- Body: {display_name}, your classmates already posted about events and clubs — jump to the feed and say hi.
+- Deep link: sera://school/{school_id}/feed
 
 Template B — Starter Prompt
-Title: Start the conversation at {school_name}
-Body: Hey {display_name}, share your first post — a quick "What club are you in?" gets replies fast.
-Deep link: sera://compose?prefill=What%20club%20are%20you%20in%3F
-Reasoning: Reduces friction by suggesting a starter prompt.
+- Title: Start the conversation at {school_name}
+- Body: Hey {display_name}, share your first post — try: "What club are you in?"
+- Deep link: sera://compose?prefill=What%20club%20are%20you%20in%3F
 
 Template C — Help & Community
-Title: Can we help you set up {school_name}?
-Body: Need ideas for your first post or to invite classmates? Tap for quick tips and an invite link you can send.
-Deep link: sera://school/{school_id}/help
-Reasoning: Supportive tone for less social users; nudges toward invites if they don't post.
+- Title: Can we help you set up {school_name}?
+- Body: Need ideas or an invite link? Tap for quick tips and invites.
+- Deep link: sera://school/{school_id}/help
 
-Personalization tokens to support: {display_name}, {school_name}, {school_id}, {top_club_name} (if available), {mutual_friends_count} (optional).
-
-Delivery constraints:
-- Respect notification preferences (do not send if user disabled notifications during onboarding).
-- Rate-limit: max 1 growth push per user per 72 hours; backoff if ignored.
-- Logging: track push_sent, push_opened, and deep_link_handled to measure conversion.
+Delivery rules:
+- Do not send if notifications disabled.
+- Rate-limit: max 1 growth push per 72 hours.
+- Log push_sent, push_opened, deep_link_handled.
 
 ---
 
-## 3) Conversion Copy — "Create a school" flow
+## Starter prompts (UI modal after first feed open)
+Show 3 quick prompts with one-tap to prefill compose: 
+- "Which clubs should I check out?"
+- "Anyone going to Friday's game?"
+- "Looking for study partners for bio"
 
-Goal: one empowering headline that overcomes friction and ownership anxiety.
-
-Recommended primary hook (1 sentence):
-"Can't find your school? Create it yourself — bring your classmates together in minutes."
-
-Alternative phrasings (A/B test candidates):
-- "Start your school's space — create it and invite classmates in minutes." (more action-oriented)
-- "Create your school and be the first to welcome classmates." (appeals to leadership)
-- "No school found? Build your school's community — quick, private, student-led." (privacy emphasis)
-
-Microcopy for the create flow (suggested):
-- Button: "Create a school"
-- Confirmation header: "School created — you're the founder"
-- Confirmation body: "You can invite classmates or add a quick post to welcome everyone." (Buttons: "Invite classmates" / "Write welcome post")
-
-UX guidance:
-- Default to a minimal create form: school name + city (auto-suggest) + optional privacy note. Avoid extra fields.
-- After creation, show a short 2-step wizard: (1) invite classmates (share link), (2) post a welcome message using a starter prompt.
-- Add a soft badge on the confirmation screen: "You created this school — you can edit it in settings." (reassures ownership without requiring admin roles)
+Instrument: starter_prompt_used { prompt_id }
 
 ---
 
-## Measurements & Targets (suggested)
-- Exposure -> CTA click (no_school_viewed → no_school_cta_clicked): target 25% click-through in first week
-- CTA click → create started (find/create split): target 10% of viewers start creation flow
-- Create started → create completed: target 70% completion (keep form tiny)
-- First post within 24h: target 30% of newly created/joined users
+## Conversion copy for Create flow (one-sentence hooks — A/B candidates)
+Recommended primary hook:
+- "Can't find your school? Create it yourself — bring your classmates together in minutes." (use this on the create button and create form header)
 
-These targets are intentionally aggressive but provide clear optimization levers.
-
----
-
-## Experiment ideas (first 2 weeks)
-1) CTA copy A/B: "Find your school" vs "Search for my school" vs "Create a school" (prioritize recommended primary CTA)
-2) Primary CTA prominence: single-primary vs side-by-side primary+secondary (test conversion to create flow)
-3) Invite CTA placement: inline link vs modal post-create flow
+Alternates:
+- "Start your school's space — create it and invite classmates in minutes." (action-first)
+- "Create your school and be the first to welcome classmates." (leadership framing)
 
 ---
 
-## Next steps / Implementation checklist
-- [ ] Instrument critical events: no_school_viewed, no_school_cta_clicked, create_school_started, create_school_completed, first_post_created_within_24h (Analytics engineer)
-- [ ] Add push templates to notification service and schedule 24-hour retarget (Growth/Product)
-- [ ] Wire NoSchoolState callbacks to navigate & fire events (Lead Architect)
-- [ ] Create small experiment in feature-flag system for CTA copy variants (Product/Analytics)
-- [ ] Design review for NoSchoolState visual & microcopy (Designer)
+## Experiments & targets (first 2 weeks)
+- CTA copy A/B test: "Find your school" (A) vs "Search for my school" (B) — metric: no_school_cta_clicked → search_school_started
+- CTA layout: primary-only vs primary+secondary — metric: overall CTA CTR & create conversion
+- Starter prompt vs no prompt — metric: starter_prompt_used → first_post_created_within_24h
+
+Targets (week 1):
+- no_school_viewed -> no_school_cta_clicked: 25% CTR
+- create_school_started -> create_school_completed: 70% completion
+- first_post_created_within_24h: 30% of new joiners
 
 ---
 
-## Appendix: Quick event JSON examples
-
-no_school_cta_clicked example:
-{
-  "event": "no_school_cta_clicked",
-  "user_id": "u_123",
-  "timestamp": "2026-04-12T12:00:00Z",
-  "screen": "feed_no_school",
-  "cta": "create",
-  "variant": "cta_v1"
-}
-
-create_school_completed example:
-{
-  "event": "create_school_completed",
-  "user_id": "u_123",
-  "school_id": "s_456",
-  "timestamp": "2026-04-12T12:14:00Z",
-  "screen": "create_school_form",
-  "source": "no_school_state"
-}
+## Implementation notes & ownership
+- Keep NoSchoolState pure (UI only). Fire analytics in callbacks where navigation is wired (app/(app)/feed/index.tsx:792-796).
+- Protect create_school_completed with server-side verification (backend/lib or callable function).
+- Add variant metadata (variant, experiment_id) to events for attribution.
+- Assign owners: Analytics engineer (events), Growth (copy & pushes), Frontend (wiring), Backend (create verification).
 
 ---
 
-## First Post nudge
-
-One-sentence hook to encourage a user who just joined to be the first to post:
-
+## First Post nudge (short)
 "Be the first to say hi — post a quick welcome or ask 'Which clubs should I join?' and start the conversation at your school."
 
 ---
 
-Please review this draft and let me know which CTAs and notification template you prefer (A/B/C), and whether to file the instrumentation tickets directly in the sprint board. I can then convert this draft into a launch checklist and commit a final copy to docs/ with timestamps and assigned owners.
+Files updated/created in this sprint:
+- components/ui/NoSchoolState.tsx
+- app/(app)/feed/index.tsx (wiring)
+- docs/GROWTH_STRATEGY.md (this file)
+- STORE_LISTING.txt
+
+Please review the copy variations and the CTA test plan. When you approve, I will: (1) draft exact TypeScript event interfaces for analytics, and (2) produce APNs/FCM push payloads for Template A. 
+

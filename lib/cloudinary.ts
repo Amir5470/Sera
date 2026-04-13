@@ -1,5 +1,5 @@
 export const uploadImageToCloudinary = async (uri: string) => {
-  const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_NAME;
+  const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
   // Prefer an explicitly-named upload preset; fall back to legacy key var if present
   const uploadPreset =
     process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET ??

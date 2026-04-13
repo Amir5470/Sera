@@ -1,11 +1,14 @@
 import { PressableScale } from "@/components/animated-helpers";
 import GradientBackground from "@/components/GradientBackground";
 import { Colors } from "@/constants/colors";
+import { clubstyles } from "@/constants/styles";
 import { useTheme } from "@/hooks/useTheme";
+import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
   FlatList,
   Modal,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -14,6 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ExamsPage() {
+  const router = useRouter();
   const { theme } = useTheme();
   const styles = useStyles(theme === "light");
 
@@ -70,8 +74,24 @@ export default function ExamsPage() {
 
   return (
     <SafeAreaView style={[styles.container]} edges={["top", "bottom"]}>
-      <View style={styles.headerRow}>
-        <Text style={styles.header}>Exam Deadlines</Text>
+      <View style={clubstyles.header}>
+        <Pressable onPress={() => router.back()} style={clubstyles.backButton}>
+          <Text style={clubstyles.backText}>←</Text>
+        </Pressable>
+        <View>
+          <Text style={clubstyles.headerText} numberOfLines={1}>
+            Exam Deadlines
+          </Text>
+        </View>
+      </View>
+      <View
+        style={{
+          padding: 0,
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
         <PressableScale style={styles.add} onPress={() => setVisible(true)}>
           <Text style={styles.addText}>+ Add</Text>
         </PressableScale>
@@ -138,7 +158,18 @@ const useStyles = (light: boolean) =>
       alignItems: "center",
     },
     header: { fontSize: 24, fontWeight: "800", color: Colors.text },
-    add: { padding: 8 },
+    add: {
+      backgroundColor: light ? Colors.background2 : Colors.card,
+      textAlign: "center",
+      borderRadius: 12,
+      margin: 16,
+      padding: 8,
+      alignSelf: "flex-start",
+      width: "80%",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+    },
     addText: { color: Colors.primary, fontWeight: "700" },
     card: {
       backgroundColor: light ? Colors.background2 : Colors.card,
