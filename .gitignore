@@ -50,3 +50,6 @@ coverage/
 
 .tmp.drivedownload/
 GEMINI.md".env" 
+./agency-agents/
+agency-agents/
+/agency-agents/

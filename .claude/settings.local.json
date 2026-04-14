@@ -28,7 +28,8 @@
       "WebFetch(domain:github.com)",
       "Bash(git clone:*)",
       "Bash(npx eslint:*)",
-      "Bash(certutil -hashfile \"C:\\\\Users\\\\amirm\\\\Documents\\\\Sera\\\\MISSION_CONTROL.md\" SHA256)"
+      "Bash(certutil -hashfile \"C:\\\\Users\\\\amirm\\\\Documents\\\\Sera\\\\MISSION_CONTROL.md\" SHA256)",
+      "Bash(git -C \"C:/Users/amirm/Documents/Sera\" status -s)"
     ]
   },
   "enableAllProjectMcpServers": true,
