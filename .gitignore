@@ -53,3 +53,9 @@ GEMINI.md".env"
 ./agency-agents/
 agency-agents/
 /agency-agents/
+.claude/
+.code-review-graph/
+.claude
+.claude
+__mocks__
+.idea

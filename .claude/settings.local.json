@@ -29,7 +29,8 @@
       "Bash(git clone:*)",
       "Bash(npx eslint:*)",
       "Bash(certutil -hashfile \"C:\\\\Users\\\\amirm\\\\Documents\\\\Sera\\\\MISSION_CONTROL.md\" SHA256)",
-      "Bash(git -C \"C:/Users/amirm/Documents/Sera\" status -s)"
+      "Bash(git -C \"C:/Users/amirm/Documents/Sera\" status -s)",
+      "Bash(powershell -Command \"Get-FileHash -Algorithm SHA256 'C:\\\\\\\\Users\\\\\\\\amirm\\\\\\\\Documents\\\\\\\\Sera\\\\\\\\MISSION_CONTROL.md' | Select-Object -ExpandProperty Hash\")"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -2,18 +2,6 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "1. Start Claude",
-      "type": "shell",
-      "command": "claude --bare",
-      "runOptions": {
-        "runOn": "folderOpen"
-      },
-      "presentation": {
-        "panel": "new",
-        "group": "jarvis"
-      }
-    },
-    {
       "label": "2. Start Expo",
       "type": "shell",
       "command": "npm start",
