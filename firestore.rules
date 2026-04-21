@@ -18,9 +18,14 @@ service cloud.firestore {
 
     // Verify that the authenticated user's userIndex.schoolId matches the provided schoolId
     function belongsToSchool(schoolId) {
+      // A user 'belongs' to a school if either:
+      // 1) They have a global userIndex/{uid} document with matching schoolId, OR
+      // 2) They have a per-school users doc at schools/{schoolId}/users/{uid}.
       return isAuthenticated()
-        && userIndexExists()
-        && get(/databases/$(database)/documents/userIndex/$(request.auth.uid)).data.schoolId == schoolId;
+        && (
+          (userIndexExists() && get(/databases/$(database)/documents/userIndex/$(request.auth.uid)).data.schoolId == schoolId)
+          || get(/databases/$(database)/documents/schools/$(schoolId)/users/$(request.auth.uid)).exists()
+        );
     }
 
     // Post payload validator: supports text and event posts, allows optional authorName and imageUrl

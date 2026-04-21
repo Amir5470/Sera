@@ -1,0 +1,13 @@
+name = "sera-secrets-worker"
+main = "src/index.js"
+compatibility_date = "2026-04-20"
+type = "javascript"
+
+kv_namespaces = [
+  { binding = "SECRETS", id = "6264931f68b0470181c1eb5cb9b70283" }
+]
+
+[env.production]
+# Add your production KV id and account_id here when ready
+# account_id = "YOUR_ACCOUNT_ID"
+# kv_namespaces = [{ binding = "SECRETS", id = "KV_ID_FOR_PROD" }]

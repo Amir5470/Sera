@@ -10,7 +10,6 @@ export default function Step2() {
   const router = useRouter();
   const [dob, setDob] = useState("");
   const [isLocked, setIsLocked] = useState(false);
-  const [debugTaps, setDebugTaps] = useState(0);
 
   // Check if this device is already flagged as "underage" on mount
   useEffect(() => {
@@ -50,18 +49,7 @@ export default function Step2() {
     return age;
   };
 
-  // AMIR'S BACKDOOR: Tap the "Access Denied" text 5 times to reset
-  const handleDebugReset = async () => {
-    if (debugTaps >= 4) {
-      await AsyncStorage.removeItem("user_blocked");
-      setIsLocked(false);
-      setDob("");
-      setDebugTaps(0);
-      Alert.alert("Debug", "Lock lifted. Don't get caught again!");
-    } else {
-      setDebugTaps((prev) => prev + 1);
-    }
-  };
+  // Age lock handling
 
   const handleNext = async () => {
     if (dob.length < 10) {
@@ -85,22 +73,14 @@ export default function Step2() {
 
     router.push("/(onboarding)/step3" as any);
   };
-  console.log("Rendering Step 2 - Age Gate", { isLocked, debugTaps });
-  console.log(
-    "user_blocked value in AsyncStorage:",
-    AsyncStorage.getItem("user_blocked"),
-  );
+  // Rendering Step 2 - Age Gate
   // --- RENDER: BLOCKED VIEW ---
   if (isLocked) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <PressableScale onPress={handleDebugReset}>
-          <Text
-            style={[styles.title, { textAlign: "center", color: "#FF4444" }]}
-          >
-            Access Denied
-          </Text>
-        </PressableScale>
+        <Text style={[styles.title, { textAlign: "center", color: "#FF4444" }]}>
+          Access Denied
+        </Text>
         <Text style={[styles.subtitle, { textAlign: "center" }]}>
           Sera is not available for your age group at this time due to safety
           regulations.

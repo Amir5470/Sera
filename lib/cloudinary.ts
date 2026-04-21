@@ -1,8 +1,13 @@
+import { getSecret } from "./secrets";
+
 export const uploadImageToCloudinary = async (uri: string) => {
-  const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const cloudName =
+    (await getSecret("CLOUDINARY_CLOUD_NAME")) ||
+    process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
   // Prefer an explicitly-named upload preset; fall back to legacy key var if present
   const uploadPreset =
-    process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET ??
+    (await getSecret("CLOUDINARY_UPLOAD_PRESET")) ||
+    process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET ||
     process.env.EXPO_PUBLIC_CLOUDINARY_KEY;
 
   if (!cloudName || !uploadPreset) {

@@ -451,9 +451,7 @@ export default function CalendarScreen() {
 
           <Text style={styles.sectionSubtitle}>School Schedule</Text>
           {isWeekend ? (
-            <Text style={styles.weekendText}>
-              Saturday and Sunday are not school days.
-            </Text>
+            <Text style={styles.weekendText}>No school on weekends.</Text>
           ) : schoolBlocks.length === 0 ? (
             <Text style={styles.emptyText}>No class blocks for this day.</Text>
           ) : (

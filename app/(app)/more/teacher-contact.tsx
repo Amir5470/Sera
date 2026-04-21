@@ -186,7 +186,7 @@ export default function TeacherContactPage() {
 
 const getStyles = (light: boolean) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background },
+    container: { flex: 1, backgroundColor: Colors.background, marginTop: -30 },
     modalContainer: {
       flex: 1,
       backgroundColor: Colors.background,

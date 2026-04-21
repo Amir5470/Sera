@@ -273,7 +273,7 @@ export default function ServiceHoursScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
+  safeArea: { flex: 1, marginTop: -30 },
   modalSafe: { flex: 1 },
   input: {
     backgroundColor: Colors.card,

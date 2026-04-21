@@ -50,12 +50,7 @@ export const useClassRooms = (
         // 1. Manual sanity check before the snapshot fires
         const uiSnap = await getDoc(doc(db, "userIndex", userId));
 
-        console.log("DEBUG: useClassRooms membership check", {
-          exists: uiSnap.exists(),
-          data: uiSnap.data(),
-          expectedSchoolId: schoolId,
-          actualSchoolId: uiSnap.data()?.schoolId,
-        });
+        // membership sanity check before subscribing
 
         if (!uiSnap.exists() || uiSnap.data()?.schoolId !== schoolId) {
           console.warn(
@@ -97,21 +92,7 @@ export const useClassRooms = (
               }
             }),
           );
-          console.log(
-            "DEBUG: useClassRooms membership array (initial)",
-            membership.map((isMember, i) => ({
-              id: roomsInitial[i]?.id,
-              name: roomsInitial[i]?.name,
-              isMember,
-            })),
-          );
           const filteredInitial = roomsInitial.filter((_, i) => membership[i]);
-          console.log(
-            "DEBUG: useClassRooms filteredInitial",
-            filteredInitial.length,
-            "of",
-            roomsInitial.length,
-          );
           setClassRooms(filteredInitial);
           setLoading(false);
 
@@ -144,22 +125,9 @@ export const useClassRooms = (
                     }
                   }),
                 );
-                console.log(
-                  "DEBUG: useClassRooms membership array (realtime)",
-                  membershipRealtime.map((isMember, i) => ({
-                    id: rooms[i]?.id,
-                    name: rooms[i]?.name,
-                    isMember,
-                  })),
-                );
-
                 const filtered = rooms.filter((_, i) => membershipRealtime[i]);
-                console.log(
-                  "DEBUG: useClassRooms filteredRealtime",
-                  filtered.length,
-                  "of",
-                  rooms.length,
-                );
+                setClassRooms(filtered);
+                setLoading(false);
                 setClassRooms(filtered);
                 setLoading(false);
               } catch (err) {

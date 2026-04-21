@@ -51,6 +51,6 @@ export default function StudyToolsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  container: { padding: 10 },
+  container: { padding: 10, marginTop: -30 },
   subtitle: { color: Colors.muted, marginTop: 6 },
 });

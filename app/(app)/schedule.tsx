@@ -1,7 +1,6 @@
 import { PressableScale } from "@/components/animated-helpers";
 import { classstyles } from "@/constants/styles";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -27,10 +26,9 @@ import { BellPeriod, voteForSchedule } from "../../lib/bellSchedules";
 import { joinOrCreateClass, leaveClass } from "../../lib/classes";
 import fetchWithLimit from "../../lib/fetchWithLimit";
 import { successNotification } from "../../lib/haptics";
-import { waitForPickedImage } from "../../lib/imagePickBridge";
 import { sanitizeObjectPayload } from "../../lib/inputSanitizer";
-// AI provider functions (extractClasses, extractTimes) are in lib/ai.ts (extractClasses, extractTimes).
 
+// Constants and helpers
 const PERIOD_OPTIONS = Array.from({ length: 9 }, (_, i) => {
   const period = i + 1;
   const suffix =
@@ -75,9 +73,6 @@ const parseTimeToMinutes = (time?: string) => {
     hours += 12;
   }
 
-  // If no meridiem was provided, apply the same heuristic used elsewhere
-  // (times with hour < 7 are likely afternoon/evening times such as "1:15").
-  // This keeps sorting and progress calculation consistent.
   if (!meridiem && hours < 7) {
     hours += 12;
   }
@@ -97,10 +92,6 @@ const resolvePeriodWindow = (startTime?: string, endTime?: string) => {
     return { start, end };
   }
 
-  // If end is not after start, try interpreting end as the following hour
-  // (handles cases like "12:45" → "1:15" where end parses lower numerically).
-  // Use a best-effort +12h adjustment rather than requiring both times to omit
-  // meridiem markers — this resolves many school-schedule edge cases.
   const adjustedEnd = end + 12 * 60;
   if (adjustedEnd > start) {
     return { start, end: adjustedEnd };
@@ -165,9 +156,8 @@ interface PeriodTime {
 }
 
 const uriToBase64 = async (uri: string): Promise<string> => {
-  // Prefer expo-file-system on-device which can directly read files as base64.
   try {
-    // Dynamic import so web builds that don't include expo-file-system won't fail.
+    // Dynamic import to avoid web failures
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const FileSystem = await import("expo-file-system");
     const base64 = await FileSystem.readAsStringAsync(uri, {
@@ -175,11 +165,9 @@ const uriToBase64 = async (uri: string): Promise<string> => {
     } as any);
     return base64;
   } catch (e) {
-    // ignore and fall back to fetch+blob approach
-    // console.debug("expo-file-system not available, falling back to fetch", e);
+    // fall back to fetch+blob
   }
 
-  // Fallback for environments where expo-file-system isn't available (web)
   const response = await fetchWithLimit(uri);
   const blob = await response.blob();
   return await new Promise((resolve, reject) => {
@@ -193,7 +181,6 @@ const uriToBase64 = async (uri: string): Promise<string> => {
     }
   });
 };
-// AI-powered extraction is provided by lib/ai.ts (extractClasses, extractTimes).
 
 const mergeTimes = (
   classes: ScannedClass[],
@@ -215,7 +202,7 @@ const mergeTimes = (
     };
   });
 
-// ─── New Bell Schedule Creator Modal ────────────────────────────────────────
+// New Bell Schedule Modal omitted for brevity; reimplemented below
 
 function NewBellScheduleModal({
   visible,
@@ -237,7 +224,6 @@ function NewBellScheduleModal({
     Record<string, { startTime: string; endTime: string }>
   >(createEmptyPeriodTimes);
   const [saving, setSaving] = useState(false);
-
   const styles = useThemeStyles();
 
   const updatePeriod = (
@@ -247,10 +233,7 @@ function NewBellScheduleModal({
   ) => {
     setPeriodTimes((current) => ({
       ...current,
-      [period]: {
-        ...current[period],
-        [field]: value,
-      },
+      [period]: { ...current[period], [field]: value },
     }));
   };
 
@@ -279,7 +262,7 @@ function NewBellScheduleModal({
       startTime: periodTimes[period]?.startTime || "",
       endTime: periodTimes[period]?.endTime || "",
     }));
-    if (periods.some((period) => !period.startTime || !period.endTime)) {
+    if (periods.some((p) => !p.startTime || !p.endTime)) {
       Alert.alert(
         "Required",
         "Add both start and end times for every selected period.",
@@ -288,7 +271,7 @@ function NewBellScheduleModal({
     }
     setSaving(true);
     try {
-      await onSave(name.trim(), periods);
+      await onSave(name.trim(), periods as BellPeriod[]);
       successNotification();
       closeModal();
     } finally {
@@ -331,13 +314,13 @@ function NewBellScheduleModal({
                   styles.periodToggle,
                   selected && styles.periodToggleActive,
                 ]}
-                onPress={() => {
+                onPress={() =>
                   setSelectedPeriods((current) =>
                     current.includes(period)
-                      ? current.filter((value) => value !== period)
+                      ? current.filter((v) => v !== period)
                       : sortPeriods([...current, period]),
-                  );
-                }}
+                  )
+                }
               >
                 <View
                   style={[
@@ -407,8 +390,7 @@ function NewBellScheduleModal({
   );
 }
 
-// ─── Manual Class Entry Modal ───────────────────────────────────────────────
-
+// Manual entry modal
 function ManualEntryModal({
   visible,
   onClose,
@@ -423,7 +405,6 @@ function ManualEntryModal({
   const [period, setPeriod] = useState("");
   const [type, setType] = useState<"class" | "club">("class");
   const [saving, setSaving] = useState(false);
-
   const styles = useThemeStyles();
 
   const handleSave = async () => {
@@ -431,7 +412,6 @@ function ManualEntryModal({
       Alert.alert("Error", "Class name and Period are required.");
       return;
     }
-    // sanitize manual entry
     try {
       const clean = sanitizeObjectPayload({ name, teacher, period }, 200);
       const payload: ScannedClass = {
@@ -469,7 +449,6 @@ function ManualEntryModal({
             <Text style={styles.modalClose}>Cancel</Text>
           </PressableScale>
         </View>
-
         <ScrollView contentContainerStyle={{ gap: 15 }}>
           <View>
             <Text style={styles.sectionLabel}>Class Name</Text>
@@ -481,7 +460,6 @@ function ManualEntryModal({
               onChangeText={setName}
             />
           </View>
-
           <View>
             <Text style={styles.sectionLabel}>Teacher</Text>
             <TextInput
@@ -492,7 +470,6 @@ function ManualEntryModal({
               onChangeText={setTeacher}
             />
           </View>
-
           <View>
             <Text style={styles.sectionLabel}>Period</Text>
             <TextInput
@@ -503,7 +480,6 @@ function ManualEntryModal({
               onChangeText={setPeriod}
             />
           </View>
-
           <View style={styles.scanRow}>
             <PressableScale
               style={[
@@ -538,7 +514,6 @@ function ManualEntryModal({
               </Text>
             </PressableScale>
           </View>
-
           <PressableScale
             style={styles.saveButton}
             onPress={handleSave}
@@ -556,8 +531,7 @@ function ManualEntryModal({
   );
 }
 
-// ─── Daily Schedule Picker ───────────────────────────────────────────────────
-
+// DailySchedulePicker component
 function DailySchedulePicker({
   schoolId,
   userId,
@@ -570,17 +544,18 @@ function DailySchedulePicker({
   const [pickerVisible, setPickerVisible] = useState(false);
   const [newScheduleVisible, setNewScheduleVisible] = useState(false);
   const [voting, setVoting] = useState(false);
-
   const myVote = votes[userId];
   const totalVotes = Object.keys(votes).length;
-
   const styles = useThemeStyles();
 
   const handleVote = async (scheduleId: string) => {
     setVoting(true);
-    await voteForSchedule(schoolId, userId, scheduleId);
-    setVoting(false);
-    setPickerVisible(false);
+    try {
+      await voteForSchedule(schoolId, userId, scheduleId);
+    } finally {
+      setVoting(false);
+      setPickerVisible(false);
+    }
   };
 
   const handleCreateSchedule = async (name: string, periods: BellPeriod[]) => {
@@ -620,7 +595,6 @@ function DailySchedulePicker({
         <Text style={styles.dayBannerChevron}>›</Text>
       </PressableScale>
 
-      {/* Schedule picker modal */}
       <Modal
         visible={pickerVisible}
         animationType="slide"
@@ -636,7 +610,6 @@ function DailySchedulePicker({
           <Text style={styles.subtitle}>
             Vote for today&apos;s schedule type.
           </Text>
-
           <ScrollView contentContainerStyle={{ gap: 10, paddingBottom: 20 }}>
             {schedules.map((s) => {
               const count = voteCounts[s.id] || 0;
@@ -665,7 +638,7 @@ function DailySchedulePicker({
                     <Text style={styles.scheduleOptionPeriods}>
                       {s.periods.length} period
                       {s.periods.length !== 1 ? "s" : ""} •{" "}
-                      {s.periods.map((period: any) => period.period).join(", ")}
+                      {s.periods.map((p: any) => p.period).join(", ")}
                     </Text>
                   </View>
                   <View style={{ alignItems: "center", marginRight: 8 }}>
@@ -715,8 +688,6 @@ function DailySchedulePicker({
   );
 }
 
-// ─── Main Schedule Screen ────────────────────────────────────────────────────
-
 export default function Schedule() {
   const styles = useThemeStyles();
   const { user } = useAuth();
@@ -725,8 +696,6 @@ export default function Schedule() {
   const { activeSchedule, defaultSchedule } = useBellSchedules(
     profile?.schoolId,
   );
-
-  const router = useRouter();
 
   const [scanStep, setScanStep] = useState<"idle" | "schedule" | "times">(
     "idle",
@@ -737,6 +706,9 @@ export default function Schedule() {
   const [scannedClasses, setScannedClasses] = useState<ScannedClass[]>([]);
   const [manualVisible, setManualVisible] = useState(false);
   const [scanOptionsVisible, setScanOptionsVisible] = useState(false);
+  const [pendingPick, setPendingPick] = useState<"camera" | "library" | null>(
+    null,
+  );
   const [scannedResults, setScannedResults] = useState<ScannedClass[]>([]);
   const [saving, setSaving] = useState(false);
   const [nowMinutes, setNowMinutes] = useState(() => getCurrentMinutes());
@@ -748,14 +720,13 @@ export default function Schedule() {
     return () => clearInterval(timer);
   }, []);
 
-  // Check if today is a weekend
   const isWeekend = useMemo(() => {
     const day = new Date().getDay();
-    return day === -1 || day === 6; // 0 = Sunday, 6 = Saturday
+    return day === -1 || day === 6;
   }, []);
-  // Merge today's bell schedule times into the class list for display
+
   const sortedClasses = useMemo(() => {
-    if (!classRooms || isWeekend) return []; // Return empty on weekends
+    if (!classRooms || isWeekend) return [];
     const effectiveSchedule = activeSchedule ?? defaultSchedule;
     const activePeriods = effectiveSchedule
       ? sortPeriods(effectiveSchedule.periods.map((period) => period.period))
@@ -777,7 +748,6 @@ export default function Schedule() {
         return h < 7 ? (h + 12) * 60 + m : h * 60 + m;
       };
 
-      // Override times with today's active bell schedule if available
       const getStart = (cls: (typeof classRooms)[0]) => {
         if (activeSchedule) {
           const slot = activeSchedule.periods.find(
@@ -805,79 +775,40 @@ export default function Schedule() {
     day: "numeric",
   });
 
+  // Simplified image picker: request permission then await native picker.
   const pickOrTakePhoto = async (
     useCamera: boolean,
   ): Promise<string | null> => {
-    console.log("DEBUG: pickOrTakePhoto invoked", { useCamera });
     try {
       const permission = useCamera
         ? await ImagePicker.requestCameraPermissionsAsync()
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
-      console.log("DEBUG: ImagePicker permission result", permission);
-      if (permission.status !== "granted") {
+      const granted =
+        (permission as any)?.granted === true ||
+        (permission as any)?.status === "granted" ||
+        (permission as any) === "granted";
+      if (!granted) {
         Alert.alert("Permission Denied", "Access needed.");
         return null;
       }
 
       let result: any;
       try {
-        console.log("DEBUG: launching ImagePicker", { useCamera });
-        const launchPromise = useCamera
-          ? ImagePicker.launchCameraAsync({ quality: 0.7 })
-          : ImagePicker.launchImageLibraryAsync({ quality: 0.7 });
-        // Allow more time for native picker presentation on slower devices (10s)
-        const timeoutMs = 1000;
-        const timeoutPromise = new Promise((res) =>
-          setTimeout(() => res({ __timeout: true }), timeoutMs),
-        );
-        // If the native picker doesn't resolve within timeoutMs, navigate to debug screen
-        const maybe = await Promise.race([launchPromise, timeoutPromise]);
-        if (maybe && (maybe as any).__timeout) {
-          console.warn("ImagePicker launch timed out");
-          console.log(
-            "DEBUG: ImagePicker timed out — navigating to debug screen",
-          );
-          try {
-            router.push(
-              `/debug-image-picker?auto=true&useCamera=${useCamera ? "true" : "false"}`,
-            );
-          } catch (e) {
-            console.error("Failed to open debug image picker route", e);
-          }
-          try {
-            const picked = await waitForPickedImage();
-            if (!picked) return null;
-            if (picked.base64) return picked.base64;
-            const b64 = await uriToBase64(picked.uri);
-            return b64;
-          } catch (e) {
-            console.error("waitForPickedImage failed", e);
-            return null;
-          }
-        }
-        result = maybe as any;
+        result = useCamera
+          ? await ImagePicker.launchCameraAsync({ quality: 0.7 })
+          : await ImagePicker.launchImageLibraryAsync({ quality: 0.7 });
       } catch (e) {
         console.error("ImagePicker launch failed", e);
         Alert.alert("Error", "Could not open image picker.");
         return null;
       }
 
-      console.log(
-        "DEBUG: ImagePicker launch result",
-        result && {
-          canceled: result.canceled ?? result.cancelled,
-          assets: result.assets?.length ?? 0,
-        },
-      );
-
-      if (result.canceled || !result.assets?.[0]) return null;
+      const didCancel = (result as any)?.canceled || (result as any)?.cancelled;
+      if (didCancel || !result.assets?.[0]) return null;
 
       setScanning(true);
       try {
         const b64 = await uriToBase64(result.assets[0].uri);
-        console.log("DEBUG: pickOrTakePhoto base64 length", b64?.length ?? 0, {
-          useCamera,
-        });
         return b64;
       } catch (e) {
         console.error("uriToBase64 failed", e);
@@ -892,47 +823,41 @@ export default function Schedule() {
   };
 
   const startScheduleScan = async (useCamera: boolean) => {
-    console.log("DEBUG: startScheduleScan invoked", {
-      useCamera,
-      scanOptionsVisible,
-    });
-    // 1. Ensure the options modal is closed before launching picker
+    // Close options modal then allow native picker to present
     setScanOptionsVisible(false);
-
-    // Wait until animations/interactions finish so the native picker can present
     await new Promise((res) =>
       InteractionManager.runAfterInteractions(() => res(undefined)),
     );
-    // Extra delay to allow modal dismissal animations to complete on all platforms
-    await new Promise((res) => setTimeout(res, 400));
-    console.log("DEBUG: interaction delay complete, launching picker");
+    await new Promise((res) => setTimeout(res, 600));
 
     const base64 = await pickOrTakePhoto(useCamera);
     if (!base64) {
       setScanning(false);
-      setManaging(true); // Return to manage modal if cancelled
+      setManaging(true);
       return;
     }
 
-    // 2. We set managing to false so the Scan Step modal can take over the screen
     setManaging(false);
     setScanStep("schedule");
 
     try {
-      console.log(
-        "DEBUG: startScheduleScan calling extractClasses, base64 length",
-        base64.length,
-      );
       const classes = await extractClasses(base64);
-      console.log("DEBUG: extractClasses result", classes);
       setScannedClasses(classes || []);
       setScanStep("times");
     } catch (err: any) {
       console.error("extractClasses failed", err);
-      Alert.alert(
-        "Error",
-        err?.message || "Could not read schedule. Check console for details.",
-      );
+      const msg = err?.message || "";
+      if (msg.includes("EXPO_PUBLIC_FUNCTIONS_BASE")) {
+        Alert.alert(
+          "AI Not Configured",
+          "Schedule OCR is not configured. Set EXPO_PUBLIC_FUNCTIONS_BASE in your environment or use Manual entry.",
+        );
+      } else {
+        Alert.alert(
+          "Error",
+          err?.message || "Could not read schedule. Check console for details.",
+        );
+      }
       setScanStep("idle");
       setManaging(true);
     } finally {
@@ -940,7 +865,71 @@ export default function Schedule() {
     }
   };
 
+  // When a pick is requested from the Scan Options modal, wait until the
+  // modal is fully closed before launching the native picker. This avoids
+  // platform-specific issues where the camera UI fails to appear when a RN
+  // modal is animating or stacked on top.
+  useEffect(() => {
+    if (!pendingPick || scanOptionsVisible) return;
+
+    let mounted = true;
+    (async () => {
+      const useCamera = pendingPick === "camera";
+      setPendingPick(null);
+      await new Promise((r) =>
+        InteractionManager.runAfterInteractions(() => r(undefined)),
+      );
+      await new Promise((r) => setTimeout(r, 600));
+
+      if (!mounted) return;
+      const base64 = await pickOrTakePhoto(useCamera);
+      if (!base64) {
+        setScanning(false);
+        setManaging(true);
+        return;
+      }
+
+      setManaging(false);
+      setScanStep("schedule");
+      try {
+        const classes = await extractClasses(base64);
+        setScannedClasses(classes || []);
+        setScanStep("times");
+      } catch (err: any) {
+        console.error("extractClasses failed", err);
+        const msg = err?.message || "";
+        if (msg.includes("EXPO_PUBLIC_FUNCTIONS_BASE")) {
+          Alert.alert(
+            "AI Not Configured",
+            "Schedule OCR is not configured. Set EXPO_PUBLIC_FUNCTIONS_BASE in your environment or use Manual entry.",
+          );
+        } else {
+          Alert.alert(
+            "Error",
+            err?.message ||
+              "Could not read schedule. Check console for details.",
+          );
+        }
+        setScanStep("idle");
+        setManaging(true);
+      } finally {
+        setScanning(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [pendingPick, scanOptionsVisible]);
+
   const scanTimesPhoto = async (useCamera: boolean) => {
+    // Close the times modal first so the native picker can present reliably
+    setScanStep("idle");
+    await new Promise((res) =>
+      InteractionManager.runAfterInteractions(() => res(undefined)),
+    );
+    await new Promise((res) => setTimeout(res, 600));
+
     const base64 = await pickOrTakePhoto(useCamera);
     if (!base64) {
       setScannedResults(
@@ -952,16 +941,18 @@ export default function Schedule() {
       return;
     }
     try {
-      console.log(
-        "DEBUG: scanTimesPhoto calling extractTimes, base64 length",
-        base64.length,
-      );
       const times = await extractTimes(base64);
-      console.log("DEBUG: extractTimes result", times);
       setScannedResults(mergeTimes(scannedClasses, times));
       setReviewing(true);
-    } catch {
-      console.error("extractTimes failed", arguments);
+    } catch (err: any) {
+      console.error("extractTimes failed", err);
+      const msg = err?.message || "";
+      if (msg.includes("EXPO_PUBLIC_FUNCTIONS_BASE")) {
+        Alert.alert(
+          "AI Not Configured",
+          "Time extraction is not configured. Set EXPO_PUBLIC_FUNCTIONS_BASE or add times manually.",
+        );
+      }
       setScannedResults(
         scannedClasses.map((c) => ({ ...c, startTime: "", endTime: "" })),
       );
@@ -973,12 +964,8 @@ export default function Schedule() {
   };
 
   const handleFinalSave = async () => {
-    console.log("DEBUG: handleFinalSave start", {
-      uid: user?.uid,
-      schoolId: profile?.schoolId,
-    });
     if (!user || !profile?.schoolId) {
-      console.error("DEBUG: handleFinalSave missing user or school", {
+      console.error("handleFinalSave missing user or school", {
         user,
         profile,
       });
@@ -1000,7 +987,6 @@ export default function Schedule() {
         };
       });
 
-      // Validate required fields before attempting writes
       const invalid = cleaned
         .map((c, i) => ({ idx: i, name: c.name, period: c.period }))
         .filter((c) => !c.name || !c.period);
@@ -1014,15 +1000,11 @@ export default function Schedule() {
         return;
       }
 
-      console.log("DEBUG: handleFinalSave cleaned items", cleaned);
-      // Attempt per-item save and collect failures so we can report granularly
       const results = await Promise.allSettled(
         cleaned.map((cls) =>
           joinOrCreateClass(user.uid, profile.schoolId, cls as any),
         ),
       );
-
-      console.log("DEBUG: handleFinalSave results", results);
 
       const errors: string[] = [];
       results.forEach((r, i) => {
@@ -1072,7 +1054,6 @@ export default function Schedule() {
     setScannedResults(updated);
   };
 
-  // Get display times for a class card (override from active bell schedule)
   const getDisplayTimes = (cls: (typeof classRooms)[0]) => {
     if (activeSchedule) {
       const slot = activeSchedule.periods.find(
@@ -1082,6 +1063,7 @@ export default function Schedule() {
     }
     return { startTime: cls.startTime, endTime: cls.endTime };
   };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <View style={styles.container}>
@@ -1090,7 +1072,6 @@ export default function Schedule() {
           <Text style={styles.dateText}>{today}</Text>
         </View>
 
-        {/* Daily schedule picker banner */}
         {profile?.schoolId && user?.uid && (
           <DailySchedulePicker schoolId={profile.schoolId} userId={user.uid} />
         )}
@@ -1415,7 +1396,6 @@ export default function Schedule() {
           onSave={handleManualSave}
         />
 
-        {/* SCAN OPTIONS MODAL */}
         <Modal
           visible={scanOptionsVisible}
           animationType="slide"
@@ -1440,8 +1420,9 @@ export default function Schedule() {
               <PressableScale
                 style={styles.scanButton}
                 onPress={() => {
+                  // defer actual picker until modal closed
                   setScanOptionsVisible(false);
-                  startScheduleScan(true);
+                  setPendingPick("camera");
                 }}
               >
                 <Text style={styles.scanButtonText}>📷 Take Photo</Text>
@@ -1450,7 +1431,7 @@ export default function Schedule() {
                 style={styles.scanButton}
                 onPress={() => {
                   setScanOptionsVisible(false);
-                  startScheduleScan(false);
+                  setPendingPick("library");
                 }}
               >
                 <Text style={styles.scanButtonText}>🖼️ Photo Library</Text>
@@ -1490,8 +1471,6 @@ const useThemeStyles = () => {
           color: theme === "light" ? "#0B1020" : Colors.text,
         },
         dateText: { fontSize: 18, color: Colors.primary, fontWeight: "700" },
-
-        // Daily schedule banner
         dayBanner: {
           backgroundColor: Colors.card,
           borderRadius: 16,
@@ -1517,7 +1496,6 @@ const useThemeStyles = () => {
         },
         dayBannerVotes: { color: Colors.muted, fontSize: 11, marginTop: 2 },
         dayBannerChevron: { color: Colors.muted, fontSize: 24 },
-
         card: {
           backgroundColor: Colors.card,
           padding: 16,
@@ -1546,10 +1524,7 @@ const useThemeStyles = () => {
         },
         classDetail: { color: Colors.muted, fontSize: 13, fontWeight: "500" },
         classTeacher: { color: Colors.muted, fontSize: 12, marginTop: 2 },
-        periodProgressWrap: {
-          marginTop: 10,
-          gap: 6,
-        },
+        periodProgressWrap: { marginTop: 10, gap: 6 },
         periodProgressTrack: {
           width: "100%",
           height: 8,
@@ -1559,31 +1534,17 @@ const useThemeStyles = () => {
           borderWidth: 1,
           borderColor: Colors.border,
         },
-        periodProgressFill: {
-          height: "100%",
-          borderRadius: 999,
-        },
-        periodProgressFillUpcoming: {
-          backgroundColor: Colors.background,
-        },
-        periodProgressFillActive: {
-          backgroundColor: Colors.primary,
-        },
-        periodProgressFillPast: {
-          backgroundColor: Colors.primary,
-        },
+        periodProgressFill: { height: "100%", borderRadius: 999 },
+        periodProgressFillUpcoming: { backgroundColor: Colors.background },
+        periodProgressFillActive: { backgroundColor: Colors.primary },
+        periodProgressFillPast: { backgroundColor: Colors.primary },
         periodProgressLabel: {
           color: Colors.muted,
           fontSize: 12,
           fontWeight: "600",
         },
-        periodProgressLabelActive: {
-          color: Colors.primary,
-        },
-        periodProgressLabelPast: {
-          color: Colors.primary,
-        },
-
+        periodProgressLabelActive: { color: Colors.primary },
+        periodProgressLabelPast: { color: Colors.primary },
         manageButton: {
           backgroundColor: Colors.card,
           padding: 16,
@@ -1601,7 +1562,6 @@ const useThemeStyles = () => {
           gap: 16,
         },
         scanningText: { color: Colors.muted, fontSize: 15 },
-
         modal: {
           flex: 1,
           backgroundColor: Colors.background,
@@ -1635,8 +1595,6 @@ const useThemeStyles = () => {
           marginBottom: 12,
           marginTop: 8,
         },
-
-        // Schedule picker
         scheduleOption: {
           backgroundColor: Colors.card,
           padding: 16,
@@ -1676,8 +1634,6 @@ const useThemeStyles = () => {
           alignItems: "center",
         },
         addScheduleText: { color: Colors.primary, fontWeight: "600" },
-
-        // New bell schedule form
         input: {
           backgroundColor: Colors.card,
           color: Colors.text,
@@ -1774,8 +1730,6 @@ const useThemeStyles = () => {
           borderWidth: 1,
           borderColor: Colors.border,
         },
-
-        // Review modal
         reviewCard: {
           backgroundColor: Colors.card,
           padding: 16,
@@ -1840,7 +1794,6 @@ const useThemeStyles = () => {
           borderWidth: 1,
           borderColor: Colors.border,
         },
-
         saveButton: {
           backgroundColor: Colors.primary,
           padding: 18,

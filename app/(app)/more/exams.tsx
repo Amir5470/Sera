@@ -150,7 +150,7 @@ export default function ExamsPage() {
 
 const useStyles = (light: boolean) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background },
+    container: { flex: 1, backgroundColor: Colors.background, marginTop: -30 },
     headerRow: {
       padding: 16,
       flexDirection: "row",

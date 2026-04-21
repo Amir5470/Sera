@@ -29,11 +29,7 @@ export const joinOrCreateClass = async (
   schoolId: string,
   classData: ClassData,
 ) => {
-  console.log("DEBUG: joinOrCreateClass start", {
-    userId,
-    schoolId,
-    classData,
-  });
+  // join or create class utility
 
   const isClub = classData.type === "club";
   const col = isClub ? "clubs" : "classes";
@@ -46,10 +42,7 @@ export const joinOrCreateClass = async (
     await setDoc(doc(db, "userIndex", userId), { uid: userId, schoolId }, {
       merge: true,
     } as any);
-    console.log("DEBUG: joinOrCreateClass ensured userIndex", {
-      userId,
-      schoolId,
-    });
+    // ensured minimal userIndex for legacy accounts
   } catch (e) {
     console.warn("joinOrCreateClass: could not ensure userIndex", e);
   }
@@ -67,13 +60,12 @@ export const joinOrCreateClass = async (
   );
 
   const snap = await getDocs(q);
-  console.log("DEBUG: joinOrCreateClass query snap size", snap.size);
+  // query to find existing room
 
   let roomId: string;
 
   if (!snap.empty) {
     roomId = snap.docs[0].id;
-    console.log("DEBUG: joinOrCreateClass found existing room", { roomId });
   } else {
     // Class doesn't exist yet — create it with all data on the class doc
     const ref = await addDoc(rootCol, {
@@ -89,7 +81,6 @@ export const joinOrCreateClass = async (
       createdAt: Date.now(),
     });
     roomId = ref.id;
-    console.log("DEBUG: joinOrCreateClass created room", { roomId });
   }
 
   // Member doc only tracks membership — no schedule data here
@@ -99,12 +90,9 @@ export const joinOrCreateClass = async (
       { joinedAt: Date.now() },
       { merge: true },
     );
-    console.log("DEBUG: joinOrCreateClass wrote member doc", {
-      roomId,
-      userId,
-    });
+    // wrote member doc
   } catch (e) {
-    console.error("DEBUG: joinOrCreateClass failed to write member doc", {
+    console.error("joinOrCreateClass failed to write member doc", {
       roomId,
       userId,
       err: e,
@@ -117,10 +105,7 @@ export const joinOrCreateClass = async (
     await updateDoc(doc(db, "schools", schoolId, "users", userId), {
       classIds: arrayUnion(roomId),
     } as any);
-    console.log("DEBUG: joinOrCreateClass updated school user index", {
-      userId,
-      roomId,
-    });
+    // updated school user index (best-effort)
   } catch (e) {
     // Non-fatal: if updating the user doc fails, membership still exists in members/.
     console.warn("Could not update user class index", e);
@@ -148,7 +133,7 @@ export const leaveClass = async (
 
   try {
     await deleteDoc(memberRef);
-    console.log("DEBUG: leaveClass deleted member doc", { classId, userId });
+    // deleted member doc
   } catch (e) {
     console.warn("leaveClass: failed to delete member doc", e);
   }
@@ -177,10 +162,7 @@ export const leaveClass = async (
     await updateDoc(doc(db, "schools", schoolId, "users", userId), {
       classIds: arrayRemove(classId),
     } as any);
-    console.log("DEBUG: leaveClass removed classId from user index", {
-      userId,
-      classId,
-    });
+    // removed classId from user index (best-effort)
   } catch (e) {
     console.warn("Could not remove classId from user index", e);
   }

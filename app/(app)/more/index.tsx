@@ -1,5 +1,5 @@
-import Screen from "@/components/ui/Screen";
 import { PressableScale } from "@/components/animated-helpers";
+import Screen from "@/components/ui/Screen";
 import { Colors } from "@/constants/colors";
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
@@ -47,23 +47,6 @@ export default function MoreIndex() {
             <View style={styles.left}>
               <Ionicons name="book-outline" size={60} color={Colors.primary} />
               <Text style={styles.label}>Study Tools</Text>
-            </View>
-          </PressableScale>
-        </View>
-        <View style={styles.card}>
-          <PressableScale
-            style={styles.item}
-            onPress={() => router.push("/(app)/more/campus-resources" as any)}
-            accessibilityRole="button"
-            accessibilityLabel="Open Campus Resources"
-          >
-            <View style={styles.left}>
-              <Ionicons
-                name="school-outline"
-                size={60}
-                color={Colors.primary}
-              />
-              <Text style={styles.label}>Campus Resources</Text>
             </View>
           </PressableScale>
         </View>

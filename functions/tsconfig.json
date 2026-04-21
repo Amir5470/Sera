@@ -6,10 +6,11 @@
     "rootDir": "src",
     "outDir": "lib",
     "esModuleInterop": true,
-    "moduleResolution": "node",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "strict": true
+    "strict": true,
+    "moduleResolution": "node",
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src"]
 }
